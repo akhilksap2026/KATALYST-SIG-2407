@@ -2078,9 +2078,9 @@ class Component extends DCLogic {
   _computeFieldEdges(){
     const norm=f=>f.replace(/\[\]$/,'');
     const wMap={};
-    (this.nwlAgents||this.agents).forEach(a=>(a.writes||[]).forEach(f=>{const nf=norm(f);(wMap[nf]=wMap[nf]||[]).push(a.id);}));
+    this.agents.forEach(a=>(a.writes||[]).forEach(f=>{const nf=norm(f);(wMap[nf]=wMap[nf]||[]).push(a.id);}));
     const edges=[];const seen=new Set();
-    (this.nwlAgents||this.agents).forEach(reader=>{
+    this.agents.forEach(reader=>{
       (reader.reads||[]).forEach(f=>{
         (wMap[norm(f)]||[]).forEach(wid=>{
           if(wid===reader.id)return;
@@ -2123,18 +2123,48 @@ class Component extends DCLogic {
       ids.forEach((id,i)=>{pos[id]={x,y:y0+i*(NH+NG)};});});
     return {pos,dist,cols,colX}; }
 
+  // ── Auto-layout for agents without hardcoded gx/gy (e.g. SkyMFG DB agents) ──
+  _ensureAutoLayout(){
+    if(this._autoLayoutPos) return;
+    if(!this.agents?.length) return; // agents not yet loaded — don't cache
+    const CU=214,RU=104,DG=80,COLS=4; // col-unit(190+24), row-unit(88+16), domain-gap, cols/domain
+    const needLayout=this.agents.filter(a=>!a.gx&&!a.gy);
+    if(!needLayout.length){this._autoLayoutPos={};return;}
+    const byDomain={};
+    needLayout.forEach(a=>{const d=a.domain||'Other';(byDomain[d]=byDomain[d]||[]).push(a);});
+    Object.values(byDomain).forEach(arr=>arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'')));
+    const DOMAIN_ORDER=['SKYMFG/RAIL','SKYMFG/LW','SKYMFG','SKYMFG/TRAINING','SKYMFG/DEMO'];
+    const domains=[...DOMAIN_ORDER.filter(d=>byDomain[d]),...Object.keys(byDomain).filter(d=>!DOMAIN_ORDER.includes(d))];
+    const DOMS_PER_ROW=3,START_X=50,START_Y=700; // y=700 places SkyMFG below NWL (maxY≈588)
+    const pos={};
+    const row0Doms=domains.slice(0,DOMS_PER_ROW);
+    const row0MaxH=Math.max(0,...row0Doms.map(d=>Math.ceil((byDomain[d]||[]).length/COLS)*RU));
+    [row0Doms,domains.slice(DOMS_PER_ROW)].forEach((rowDoms,ri)=>{
+      const rowY=START_Y+(ri===0?0:row0MaxH+DG);
+      let curX=START_X;
+      rowDoms.forEach(d=>{
+        (byDomain[d]||[]).forEach((a,i)=>{
+          pos[a.id]={x:curX+(i%COLS)*CU,y:rowY+Math.floor(i/COLS)*RU};
+        });
+        curX+=COLS*CU+DG;
+      });
+    });
+    this._autoLayoutPos=pos;
+  }
+
   _wfComputeFit(){
+    this._ensureAutoLayout();
     const mode=this.state.wfMode||'focus';
-    const _mapAgents=this.nwlAgents||this.agents;
-    const focusId=this.state.wfFocusId||this.state.activeAgent||_mapAgents[0]?.id||'';
+    const focusId=this.state.wfFocusId||this.state.activeAgent||this.agents[0]?.id||'';
     const cp=this.state.wfCustomPos||{};
     if(!this._fieldEdgesCache) this._fieldEdgesCache=this._computeFieldEdges();
     let layout=null;
     if(mode==='focus'&&focusId) layout=this._focusLayout(focusId);
+    const autoP=a=>this._autoLayoutPos?.[a.id]||{x:a.gx,y:a.gy};
     const getP=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:
-      mode==='focus'?(layout?.pos?.[a.id]||{x:a.gx,y:a.gy}):{x:a.gx,y:a.gy};
+      mode==='focus'?(layout?.pos?.[a.id]||autoP(a)):autoP(a);
     const NW=190,NH=88,PAD=72;
-    const subset=mode==='focus'&&layout?_mapAgents.filter(a=>layout.pos[a.id]):_mapAgents;
+    const subset=mode==='focus'&&layout?this.agents.filter(a=>layout.pos[a.id]):this.agents;
     if(!subset.length)return null;
     const xs=subset.map(a=>getP(a).x),ys=subset.map(a=>getP(a).y);
     const minX=Math.min(...xs)-PAD,minY=Math.min(...ys)-PAD;
@@ -2145,9 +2175,9 @@ class Component extends DCLogic {
 
   renderGraph(){ const C=this.C,h=React.createElement;
     try {
-    const _mapAgents=this.nwlAgents||this.agents;
+    this._ensureAutoLayout();
     const mode=this.state.wfMode||'focus';
-    const focusId=this.state.wfFocusId||this.state.activeAgent||_mapAgents[0]?.id||'';
+    const focusId=this.state.wfFocusId||this.state.activeAgent||this.agents[0]?.id||'';
     const panX=this.state.wfPanX||0,panY=this.state.wfPanY||0,zoom=this.state.wfZoom||0.79;
     const colorBy=this.state.wfColorBy||'type';
     const hiddenDomains=this.state.wfHiddenDomains||[];
@@ -2170,13 +2200,14 @@ class Component extends DCLogic {
     // ── layout by mode (wfCustomPos always wins) ──────────────────────────
     const cp=this.state.wfCustomPos||{};
     let getPos,connectedSet,layout=null;
+    const autoP=a=>this._autoLayoutPos?.[a.id]||{x:a.gx,y:a.gy};
     if(mode==='focus'&&focusId){
       layout=this._focusLayout(focusId);
       connectedSet=new Set(Object.keys(layout.pos));
-      getPos=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:(layout.pos[a.id]||{x:a.gx,y:a.gy});
+      getPos=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:(layout.pos[a.id]||autoP(a));
     } else {
-      getPos=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:{x:a.gx,y:a.gy};
-      connectedSet=new Set(_mapAgents.map(a=>a.id));
+      getPos=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:autoP(a);
+      connectedSet=new Set(this.agents.map(a=>a.id));
     }
     // edgePath adapter: call with position-overridden objects
     const ep=(a,b,bow)=>this.edgePath({gx:getPos(a).x,gy:getPos(a).y},{gx:getPos(b).x,gy:getPos(b).y},bow);
@@ -2328,7 +2359,7 @@ class Component extends DCLogic {
           h('text',{x:0,y:4,textAnchor:'middle',fontSize:10,fontFamily:'JetBrains Mono,monospace',fontWeight:700,fill:col},cf.id))); }).filter(Boolean); }
 
     // ── nodes ─────────────────────────────────────────────────────────────
-    const nodes=_mapAgents.map(a=>{
+    const nodes=this.agents.map(a=>{
       const hidden=isHidden(a);const sel=this.state.selectedNode===a.id;
       const isFocus=a.id===focusId&&mode==='focus';
       const p=getPos(a);const tc=nodeColor(a);const hc=this.healthColor(a.health);
@@ -2372,7 +2403,7 @@ class Component extends DCLogic {
 
     // ── minimap ───────────────────────────────────────────────────────────
     const mmW=164,mmH=108,mmPad=12;
-    const allPos=_mapAgents.map(a=>getPos(a));
+    const allPos=this.agents.map(a=>getPos(a));
     const mmXs=allPos.map(p=>p.x),mmYs=allPos.map(p=>p.y);
     const mmMinX=Math.min(...mmXs)-mmPad,mmMinY=Math.min(...mmYs)-mmPad;
     const mmBBW=Math.max(...mmXs)+NW+mmPad-mmMinX,mmBBH=Math.max(...mmYs)+NH+mmPad-mmMinY;
@@ -2400,7 +2431,7 @@ class Component extends DCLogic {
         this.setState({wfPanX:cWe/2-vx*zoom,wfPanY:cHe/2-vy*zoom}); }},
       h('svg',{width:mmW,height:mmH-14,style:{display:'block'}},
         // agent rects
-        ..._mapAgents.map(a=>{ const [mx,my]=toMM(getPos(a).x,getPos(a).y);
+        ...this.agents.map(a=>{ const [mx,my]=toMM(getPos(a).x,getPos(a).y);
           const tc=nodeColor(a);const isF=a.id===focusId&&mode==='focus';
           const rw=Math.max(2,NW*mmScale),rh=Math.max(1.5,NH*mmScale);
           return h('rect',{key:a.id,x:mx,y:my,width:rw,height:rh,rx:1,
@@ -2883,7 +2914,7 @@ class Component extends DCLogic {
     });
     // Detect agents sharing the same trigger event that aren't already in a conflict pair
     const byTrigger=new Map();
-    (this.nwlAgents||this.agents).forEach(a=>{ if(!byTrigger.has(a.evt)) byTrigger.set(a.evt,[]); byTrigger.get(a.evt).push(a); });
+    this.agents.forEach(a=>{ if(!byTrigger.has(a.evt)) byTrigger.set(a.evt,[]); byTrigger.get(a.evt).push(a); });
     const proactive=[...byTrigger.entries()].filter(([evt,as])=>as.length>1&&!byEvt.has(evt));
     const clusters=[...byEvt.entries()].map(([evt,cfs])=>{
       const agentIds=[...new Set(cfs.flatMap(c=>[c.a,c.b]))];
@@ -2934,11 +2965,12 @@ class Component extends DCLogic {
     const strokeMap={Tender:'#1a3270',Rating:'#1e56e0',Compliance:'#C07B0A',Document:'#7E8CA8',Invoice:'#A05EAF',AI:'#7048B8',Tracking:'#3B82C4'};
     let idC=10;
     const cells=['<mxCell id="0"/>','<mxCell id="1" parent="0"/>'];
-    (this.nwlAgents||this.agents).forEach(a=>{
+    this.agents.forEach(a=>{
       const fill=fillMap[a.type]||'#FFFFFF'; const stroke=strokeMap[a.type]||'#E5E3E0';
       const label=esc(a.name)+'&#xa;'+esc(a.evt)+'&#xa;'+esc(a.version+' · '+a.success.toFixed(1)+'%');
       const style=`rounded=1;whiteSpace=wrap;fillColor=${fill};strokeColor=${stroke};fontFamily=Inter;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=6;`;
-      cells.push(`<mxCell id="${esc(a.id)}" value="${label}" style="${style}" vertex="1" parent="1"><mxGeometry x="${a.gx}" y="${a.gy}" width="190" height="88" as="geometry"/></mxCell>`); });
+      const ap=this._autoLayoutPos?.[a.id];const ax=ap?ap.x:a.gx,ay=ap?ap.y:a.gy;
+      cells.push(`<mxCell id="${esc(a.id)}" value="${label}" style="${style}" vertex="1" parent="1"><mxGeometry x="${ax}" y="${ay}" width="190" height="88" as="geometry"/></mxCell>`); });
     this.flowEdges.forEach((e,i)=>{
       cells.push(`<mxCell id="fe${i}" style="edgeStyle=elbowEdgeStyle;strokeColor=#1e56e0;strokeWidth=2;" edge="1" source="${esc(e[0])}" target="${esc(e[1])}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`); });
     this.aiEdges.forEach((e,i)=>{
@@ -3051,8 +3083,8 @@ class Component extends DCLogic {
     const sMap={Tender:'#1a3270',Rating:'#1e56e0',Compliance:'#C07B0A',Document:'#7E8CA8',Invoice:'#A05EAF',AI:'#7048B8',Tracking:'#3B82C4'};
     const hCol={green:'#1E7F5A',amber:'#B86E00',red:'#C74634'};
     const ep=(a,b,bow)=>{bow=bow||0;const ax=a.gx+95,ay=a.gy+44,bx=b.gx+95,by=b.gy+44,mx=(ax+bx)/2,my=(ay+by)/2,dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,cx=mx+nx*bow,cy=my+ny*bow;return 'M'+ax+' '+ay+' Q'+cx+' '+cy+' '+bx+' '+by;};
-    const _pdfAgents=this.nwlAgents||this.agents;
-    const xs=_pdfAgents.map(a=>a.gx),ys=_pdfAgents.map(a=>a.gy);
+    const apOf=a=>{const p=this._autoLayoutPos?.[a.id];return p||{x:a.gx,y:a.gy};};
+    const xs=this.agents.map(a=>apOf(a).x),ys=this.agents.map(a=>apOf(a).y);
     const svgMinX=Math.min(...xs)-30,svgMinY=Math.min(...ys)-30,svgMaxX=Math.max(...xs)+220,svgMaxY=Math.max(...ys)+120;
     const vbW=svgMaxX-svgMinX,vbH=svgMaxY-svgMinY;
     const mkArr=(id,col)=>'<marker id="'+id+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="'+col+'"/></marker>';
@@ -3061,18 +3093,19 @@ class Component extends DCLogic {
     this.flowEdges.forEach(e=>{const a=this.byId(e[0]),b=this.byId(e[1]);if(a&&b)svgParts.push('<path d="'+ep(a,b)+'" fill="none" stroke="#1e56e0" stroke-width="2" stroke-linecap="round" marker-end="url(#dat)"/>');}); 
     this.aiEdges.forEach(e=>{const a=this.byId(e[0]),b=this.byId(e[1]);if(a&&b)svgParts.push('<path d="'+ep(a,b)+'" fill="none" stroke="#7048B8" stroke-width="2" stroke-dasharray="4 6" stroke-linecap="round" marker-end="url(#dap)"/>');}); 
     this.conflicts.forEach(c=>{const a=this.byId(c.a),b=this.byId(c.b);if(a&&b){const col=c.severity==='critical'?'#C74634':'#B86E00';svgParts.push('<path d="'+ep(a,b,38)+'" fill="none" stroke="'+col+'" stroke-width="1.5" stroke-dasharray="5 4" stroke-linecap="round" marker-end="url(#'+(c.severity==='critical'?'dar':'daa')+')"/>');}});
-    _pdfAgents.forEach(a=>{
+    this.agents.forEach(a=>{
       const fill=fMap[a.type]||'#FFFFFF',stroke=sMap[a.type]||'#CCCCCC',hc=hCol[a.health]||'#999';
       const nm=a.name.length>22?a.name.slice(0,21)+'\u2026':a.name;
+      const ap=apOf(a);
       svgParts.push(
         '<g>'
-        +'<rect x="'+a.gx+'" y="'+a.gy+'" width="190" height="88" rx="10" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.5"/>'
-        +'<rect x="'+a.gx+'" y="'+a.gy+'" width="190" height="5" rx="2" fill="'+stroke+'"/>'
-        +'<circle cx="'+(a.gx+173)+'" cy="'+(a.gy+17)+'" r="5" fill="'+hc+'"/>'
-        +'<text x="'+(a.gx+10)+'" y="'+(a.gy+28)+'" font-size="11" font-weight="700" font-family="Inter,system-ui,sans-serif" fill="#1A3F5C">'+esc(nm)+'</text>'
-        +'<text x="'+(a.gx+10)+'" y="'+(a.gy+44)+'" font-size="9" font-family="JetBrains Mono,monospace" fill="#6B7AA0">'+esc(a.evt)+'</text>'
-        +'<text x="'+(a.gx+10)+'" y="'+(a.gy+62)+'" font-size="8.5" font-family="JetBrains Mono,monospace" fill="#9BA8C0">'+esc((a.version||'v?')+' \u00b7 '+(a.success||0).toFixed(1)+'%')+'</text>'
-        +'<text x="'+(a.gx+10)+'" y="'+(a.gy+78)+'" font-size="8" font-family="Inter,system-ui,sans-serif" fill="#B0B8CC">'+esc(a.domain)+'</text>'
+        +'<rect x="'+ap.x+'" y="'+ap.y+'" width="190" height="88" rx="10" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.5"/>'
+        +'<rect x="'+ap.x+'" y="'+ap.y+'" width="190" height="5" rx="2" fill="'+stroke+'"/>'
+        +'<circle cx="'+(ap.x+173)+'" cy="'+(ap.y+17)+'" r="5" fill="'+hc+'"/>'
+        +'<text x="'+(ap.x+10)+'" y="'+(ap.y+28)+'" font-size="11" font-weight="700" font-family="Inter,system-ui,sans-serif" fill="#1A3F5C">'+esc(nm)+'</text>'
+        +'<text x="'+(ap.x+10)+'" y="'+(ap.y+44)+'" font-size="9" font-family="JetBrains Mono,monospace" fill="#6B7AA0">'+esc(a.evt)+'</text>'
+        +'<text x="'+(ap.x+10)+'" y="'+(ap.y+62)+'" font-size="8.5" font-family="JetBrains Mono,monospace" fill="#9BA8C0">'+esc((a.version||'v?')+' \u00b7 '+(a.success||0).toFixed(1)+'%')+'</text>'
+        +'<text x="'+(ap.x+10)+'" y="'+(ap.y+78)+'" font-size="8" font-family="Inter,system-ui,sans-serif" fill="#B0B8CC">'+esc(a.domain)+'</text>'
         +'</g>'
       );
     });
@@ -3081,11 +3114,12 @@ class Component extends DCLogic {
     // ── draw.io XML embedded as data-URI download ──────────────────────────
     const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     const dxCells=['<mxCell id="0"/>','<mxCell id="1" parent="0"/>'];
-    _pdfAgents.forEach(a=>{
+    this.agents.forEach(a=>{
       const fill=fMap[a.type]||'#FFFFFF',stroke=sMap[a.type]||'#CCCCCC';
       const label=xe(a.name)+'&#xa;'+xe(a.evt)+'&#xa;'+xe((a.version||'')+' \u00b7 '+a.success.toFixed(1)+'%');
       const style='rounded=1;whiteSpace=wrap;fillColor='+fill+';strokeColor='+stroke+';fontFamily=Inter;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=6;';
-      dxCells.push('<mxCell id="'+xe(a.id)+'" value="'+label+'" style="'+style+'" vertex="1" parent="1"><mxGeometry x="'+a.gx+'" y="'+a.gy+'" width="190" height="88" as="geometry"/></mxCell>');
+      const ap2=apOf(a);
+      dxCells.push('<mxCell id="'+xe(a.id)+'" value="'+label+'" style="'+style+'" vertex="1" parent="1"><mxGeometry x="'+ap2.x+'" y="'+ap2.y+'" width="190" height="88" as="geometry"/></mxCell>');
     });
     this.flowEdges.forEach((e,i)=>{dxCells.push('<mxCell id="fe'+i+'" style="edgeStyle=elbowEdgeStyle;strokeColor=#1e56e0;strokeWidth=2;" edge="1" source="'+xe(e[0])+'" target="'+xe(e[1])+'" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>');});
     this.aiEdges.forEach((e,i)=>{dxCells.push('<mxCell id="ae'+i+'" style="edgeStyle=elbowEdgeStyle;strokeColor=#7048B8;strokeWidth=2;dashed=1;dashPattern=4 6;" edge="1" source="'+xe(e[0])+'" target="'+xe(e[1])+'" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>');});
