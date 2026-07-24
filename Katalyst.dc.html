@@ -93,6 +93,9 @@ class Component extends DCLogic {
     adminAuditQ:'', adminAuditUser:'', adminAuditAction:'', blastTarget:null,
     annotations:{}, annotDraft:{}, annotAddOpen:{},
     skymfgDomain:null, skymfgAgentGid:null, skymfgAgentDetail:null, skymfgAgentXref:null, skymfgAgentLoading:false,
+    skymfgAgentLinks:null, skymfgAgentRelOpen:false,
+    skymfgMapTier:1, skymfgMapGraph:null, skymfgMapGraphKey:null, skymfgMapHovered:null,
+    skymfgLinkStats:null, skymfgListLinkData:null, skymfgListLinkedOnly:false,
     skymfgListSearch:'', skymfgListDomains:[], skymfgListDQTs:[], skymfgListActiveOnly:false,
     skymfgListSort:'agent_xid', skymfgListSortDir:'asc', skymfgMetaOpen:true, agentPickerOpen:null, agentPickerQuery:'',
     wbXrefGid:null, wbXref:null, viewXrefGid:null, viewXref:null };
@@ -6184,12 +6187,14 @@ class Component extends DCLogic {
 
   smOpenAgent(gid){
     if(!gid) return;
-    this.setState({skymfgAgentGid:gid,skymfgAgentDetail:null,skymfgAgentXref:null,skymfgAgentLoading:true,screen:'skymfg-agent'});
+    this.setState({skymfgAgentGid:gid,skymfgAgentDetail:null,skymfgAgentXref:null,
+      skymfgAgentLinks:null,skymfgAgentRelOpen:false,skymfgAgentLoading:true,screen:'skymfg-agent'});
     Promise.all([
       fetch('/api/skymfg/agent?gid='+encodeURIComponent(gid)).then(r=>r.json()),
       fetch('/api/skymfg/xref?gid='+encodeURIComponent(gid)).then(r=>r.json()).catch(()=>({triggers:[],triggered_by:[]})),
-    ]).then(([d,xref])=>{
-      this.setState({skymfgAgentDetail:d,skymfgAgentXref:xref,skymfgAgentLoading:false});
+      this._fetchAgentLinks(gid),
+    ]).then(([d,xref,links])=>{
+      this.setState({skymfgAgentDetail:d,skymfgAgentXref:xref,skymfgAgentLinks:links,skymfgAgentLoading:false});
     }).catch(()=>this.setState({skymfgAgentLoading:false}));
   }
 
@@ -6473,75 +6478,244 @@ class Component extends DCLogic {
                 border:'1px solid '+ch.text+'22',cursor:'default'}},
               cat,
               h('span',{style:{fontSize:10,fontWeight:700,opacity:0.7}}, n));})),
-        {pad:12}):null);
+        {pad:12}):null,
+      // ── Agent Dependencies summary ───────────────────────────────────────────
+      (() => {
+        const ls=this.state.skymfgLinkStats;
+        if(!ls&&!this._dashLinkLoading){
+          this._dashLinkLoading=true;
+          fetch('/api/links/stats').then(r=>r.json()).then(d=>{
+            this._dashLinkLoading=false;
+            this.setState({skymfgLinkStats:d});
+          }).catch(()=>{this._dashLinkLoading=false;});
+        }
+        if(!ls) return h('div',{style:{padding:'12px 0',textAlign:'center',fontSize:11,color:C.faint}},'Loading dependency stats…');
+        const depCards=[
+          {label:'Causal Links',        value:ls.causal_links,         color:C.teal,   sub:'RAISES_EVENT + delegate chains'},
+          {label:'Hub Agents',          value:ls.hub_count,            color:'#7C3AED', sub:'≥3 causal connections'},
+          {label:'Isolated Agents',     value:ls.isolated_count,       color:C.faint,  sub:'no causal links'},
+          {label:'Cross-domain Links',  value:ls.cross_domain_links,   color:C.amber,  sub:'span multiple domains'},
+          {label:'External Touchpoints',value:ls.external_touchpoints, color:'#0891B2', sub:'SHARED_EXTERNAL_SYSTEM'},
+        ];
+        return h('div',{style:{marginTop:4}},
+          h('div',{style:{fontSize:11,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10,display:'flex',alignItems:'center',gap:8}},
+            'Agent Dependencies',
+            h('div',{style:{flex:1,height:1,background:C.border}})),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:14}},
+            ...depCards.map((c,i)=>h('div',{key:i,style:{background:C.card,border:'1px solid '+C.border,
+              borderRadius:7,padding:'12px 14px',borderTop:'3px solid '+c.color}},
+              h('div',{style:{fontSize:9.5,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:5}},c.label),
+              h('div',{style:{fontSize:22,fontWeight:800,color:c.color,fontFamily:'JetBrains Mono,monospace',marginBottom:2}},
+                c.value!=null?String(c.value):'—'),
+              h('div',{style:{fontSize:9.5,color:C.faint}},c.sub)))),
+          (ls.top_hubs&&ls.top_hubs.length)?h('div',{style:{background:C.card,border:'1px solid '+C.border,borderRadius:7,padding:'12px 14px',marginBottom:0}},
+            h('div',{style:{fontSize:10,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10}},
+              'Top Hub Agents by inbound connections'),
+            h('div',{style:{display:'flex',flexWrap:'wrap',gap:8}},
+              ...ls.top_hubs.map((hub,i)=>{
+                const dc=this.smDomainColor(hub.domain_name||'');
+                return h('div',{key:i,onClick:()=>this.smOpenAgent(hub.agent_gid),
+                  style:{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',borderRadius:5,
+                    background:dc+'10',border:'1px solid '+dc+'30',cursor:'pointer'}},
+                  h('span',{style:{fontSize:10,fontWeight:700,color:dc}},hub.agent_xid||hub.agent_gid),
+                  h('span',{style:{fontSize:9.5,fontFamily:'JetBrains Mono,monospace',fontWeight:700,color:C.faint}},
+                    hub.inbound_count+' in'));}))):null);
+      })());
   }
 
   // ─── SKYMFG: 3B AGENT MAP ────────────────────────────────────────────────────
 
   renderSkymfgMap(){ const C=this.C,h=React.createElement;
-    const agents=this.smFilteredAgents();
-    const byDomain={};
-    agents.forEach(a=>{
-      if(!byDomain[a.domain_name]) byDomain[a.domain_name]={};
-      if(!byDomain[a.domain_name][a.data_query_type_gid]) byDomain[a.domain_name][a.data_query_type_gid]=[];
-      byDomain[a.domain_name][a.data_query_type_gid].push(a);
-    });
-    const domOrder=(this.skymfgDomains||[]).map(d=>d.domain_name).filter(d=>byDomain[d]);
-    Object.keys(byDomain).forEach(d=>{ if(!domOrder.includes(d)) domOrder.push(d); });
+    const tier=this.state.skymfgMapTier||1;
+    const domain=this.state.skymfgDomain||null;
+    const graphKey=(domain||'*')+':'+tier;
+    const g=this.state.skymfgMapGraph;
+    const hov=this.state.skymfgMapHovered;
 
-    return h('div',{style:{padding:'20px 24px',overflowY:'auto',height:'100%',boxSizing:'border-box'}},
-      h('div',{style:{marginBottom:4,display:'flex',alignItems:'baseline',gap:10}},
+    // Kick off async load when graph absent or stale
+    if(!g||this.state.skymfgMapGraphKey!==graphKey){
+      if(this._mapLoadKey!==graphKey){
+        this._mapLoadKey=graphKey;
+        this._fetchLinkGraph(domain,tier).then(graph=>{
+          this.setState({skymfgMapGraph:graph,skymfgMapGraphKey:graphKey});
+        });
+      }
+      return h('div',{style:{padding:'20px 24px',display:'flex',flexDirection:'column',height:'100%',boxSizing:'border-box'}},
+        h('div',{style:{marginBottom:4,display:'flex',alignItems:'baseline',gap:10}},
+          h('span',{style:{fontSize:20,fontWeight:800,color:C.text}},'Agent Map')),
+        this.renderSkymfgDomainBar(),
+        h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12}},
+          h('span',{style:{width:24,height:24,border:'3px solid '+C.teal+'30',borderTopColor:C.teal,borderRadius:'50%',display:'inline-block',animation:'spin 0.85s linear infinite'}}),
+          h('span',{style:{fontSize:12,color:C.faint}},'Loading dependency graph…')));
+    }
+
+    // Edge visual style per link type
+    const LS={
+      RAISES_EVENT:          {color:'#DC2626',dash:null,    label:'RAISES EVENT'},
+      FOR_EACH_DELEGATES:    {color:'#7C3AED',dash:null,    label:'FOR EACH'},
+      WRAPPER_DELEGATES:     {color:'#2563EB',dash:'5,3',   label:'WRAPPER'},
+      STATUS_CHAIN:          {color:'#059669',dash:null,    label:'STATUS CHAIN'},
+      SHARED_EXTERNAL_SYSTEM:{color:'#0891B2',dash:'3,3',   label:'SHARED SYSTEM'},
+      EXECUTION_PEER:        {color:'#94A3B8',dash:'2,4',   label:'PEER'},
+    };
+    const CAUSAL=['RAISES_EVENT','FOR_EACH_DELEGATES','WRAPPER_DELEGATES','STATUS_CHAIN'];
+
+    const edges=g.edges||[],nodes=g.nodes||[];
+    const causalEdges=edges.filter(e=>CAUSAL.includes(e.link_type));
+
+    // Build causal adjacency for layout
+    const outE={},inE={};
+    causalEdges.forEach(e=>{(outE[e.source]=outE[e.source]||[]).push(e.target);(inE[e.target]=inE[e.target]||[]).push(e.source);});
+
+    // Partition: connected (appear in any displayed edge) vs isolated
+    const linkedGids=new Set(edges.flatMap(e=>[e.source,e.target]));
+    const linkedNodes=nodes.filter(n=>linkedGids.has(n.agent_gid));
+    const isolatedNodes=nodes.filter(n=>!linkedGids.has(n.agent_gid));
+
+    // BFS layer assignment from source nodes (no inbound causal)
+    const layer={};
+    const roots=linkedNodes.filter(n=>!inE[n.agent_gid]);
+    if(!roots.length&&linkedNodes.length) roots.push(linkedNodes[0]);
+    const bq=roots.map(n=>({id:n.agent_gid,d:0}));
+    bq.forEach(({id,d})=>{layer[id]=d;});
+    let bi=0;
+    while(bi<bq.length){const{id,d}=bq[bi++];if(d>=5)continue;(outE[id]||[]).forEach(t=>{if(layer[t]===undefined||layer[t]<d+1){layer[t]=d+1;bq.push({id:t,d:d+1});}});}
+    linkedNodes.forEach(n=>{if(layer[n.agent_gid]===undefined)layer[n.agent_gid]=0;});
+
+    // Group by layer, stable alphabetical within column
+    const byLayer={};
+    linkedNodes.forEach(n=>{const l=layer[n.agent_gid]||0;(byLayer[l]=byLayer[l]||[]).push(n);});
+    const COLS=Object.keys(byLayer).map(Number).sort((a,b)=>a-b);
+    COLS.forEach(col=>{byLayer[col].sort((a,b)=>a.agent_xid.localeCompare(b.agent_xid));});
+
+    // Compute pixel positions
+    const NW=192,NH=66,COL_W=240,ROW_H=86,PX=20,PY=16;
+    const colX={};COLS.forEach((col,i)=>{colX[col]=PX+i*COL_W;});
+    const npos={};COLS.forEach(col=>{byLayer[col].forEach((n,i)=>{npos[n.agent_gid]={x:colX[col],y:PY+i*ROW_H};});});
+    const maxRows=Math.max(...COLS.map(c=>byLayer[c].length),1);
+    const totalH=PY*2+maxRows*ROW_H,totalW=PX*2+COLS.length*COL_W;
+
+    // Hover highlight sets
+    const hovIdx=hov?new Set(edges.reduce((a,e,i)=>{if(e.source===hov||e.target===hov)a.push(i);return a;},[])):[null][0];
+    const hovPeers=hov?new Set(edges.filter(e=>e.source===hov||e.target===hov).flatMap(e=>[e.source,e.target])):null;
+
+    // Tier toggle
+    const tBtn=(t,lbl)=>h('button',{key:t,onClick:()=>{this.setState({skymfgMapTier:t,skymfgMapGraph:null,skymfgMapGraphKey:null});this._mapLoadKey=null;},
+      style:{font:'inherit',fontSize:10,fontWeight:700,padding:'4px 10px',borderRadius:5,border:'1px solid '+C.border,cursor:'pointer',
+        background:tier===t?C.teal:C.panel2,color:tier===t?'#fff':C.dim,transition:'all 80ms'}},lbl);
+
+    const legendTypes=tier===1?CAUSAL:tier===2?[...CAUSAL,'SHARED_EXTERNAL_SYSTEM']:Object.keys(LS);
+
+    return h('div',{style:{padding:'20px 24px',display:'flex',flexDirection:'column',height:'100%',boxSizing:'border-box',overflow:'hidden'}},
+      // Header
+      h('div',{style:{marginBottom:4,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',flexShrink:0}},
         h('span',{style:{fontSize:20,fontWeight:800,color:C.text}},'Agent Map'),
-        h('span',{style:{fontSize:12,color:C.faint}},'Topology: Domain → Data Query Type → Agent')),
+        h('span',{style:{fontSize:12,color:C.faint,flex:1}},
+          linkedNodes.length+' connected · '+(g.stats.isolated_agents||0)+' isolated · '+edges.length+' links'),
+        h('div',{style:{display:'flex',alignItems:'center',gap:4}},
+          h('span',{style:{fontSize:10,color:C.faint,marginRight:2}},'Show:'),
+          tBtn(1,'Causal'),tBtn(2,'+ Systems'),tBtn(3,'All'))),
       this.renderSkymfgDomainBar(),
-      ...domOrder.map(domName=>{
-        const dc=(this.skymfgDomains||[]).find(d=>d.domain_name===domName)||{theme_color:C.faint,display_label:domName};
-        const dqts=byDomain[domName],dqtNames=Object.keys(dqts).sort();
-        const totalN=Object.values(dqts).reduce((s,v)=>s+v.length,0);
-        return h('div',{key:domName,style:{marginBottom:28}},
-          h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:14,padding:'8px 14px',
-            background:dc.theme_color+'12',borderRadius:8,borderLeft:'4px solid '+dc.theme_color}},
-            h('div',{style:{width:12,height:12,borderRadius:3,background:dc.theme_color,flex:'none'}}),
-            h('span',{style:{fontSize:13,fontWeight:800,color:dc.theme_color,letterSpacing:'.3px'}},(dc.display_label||domName).toUpperCase()),
-            h('span',{style:{fontSize:11,color:dc.theme_color+'99',fontFamily:'JetBrains Mono,monospace'}},totalN+' agents')),
-          ...dqtNames.map(dqtName=>{
-            const dqtAgents=dqts[dqtName],dq=this.smDQT(dqtName);
-            return h('div',{key:dqtName,style:{marginLeft:16,marginBottom:18}},
-              h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8,paddingBottom:5,borderBottom:'1px solid '+C.line}},
-                h('span',{style:{fontSize:14,lineHeight:1}},dq.icon),
-                h('span',{style:{fontSize:11,fontWeight:700,color:dq.color,textTransform:'uppercase',letterSpacing:'.5px'}},dqtName),
-                h('span',{style:{fontSize:10,color:C.faint,fontFamily:'JetBrains Mono,monospace'}},dqtAgents.length+' agents')),
-              h('div',{style:{display:'flex',flexWrap:'wrap',gap:8,paddingLeft:14}},
-                ...dqtAgents.map(a=>{
-                  const cx=a.complexity_score,cxC=this.smComplexityColor(cx),tot=a.norm_action_count+a.err_action_count;
-                  return h('div',{key:a.agent_gid,onClick:()=>this.smOpenAgent(a.agent_gid),
-                    style:{width:190,padding:'10px 12px',background:C.card,border:'1px solid '+C.border,
-                      borderRadius:7,cursor:'pointer',borderTop:'2px solid '+cxC,transition:'box-shadow 120ms'},
-                    onMouseEnter:e=>{e.currentTarget.style.boxShadow='0 2px 10px '+dc.theme_color+'35';},
-                    onMouseLeave:e=>{e.currentTarget.style.boxShadow='none';}},
-                    h('div',{style:{fontSize:11.5,fontWeight:700,color:C.text,marginBottom:6,wordBreak:'break-word',lineHeight:1.3,minHeight:32}},a.agent_xid),
-                    h('div',{style:{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}},
-                      h('span',{style:{fontSize:10,fontWeight:700,color:cxC,background:cxC+'18',borderRadius:3,padding:'1px 6px'}},'cx '+cx.toFixed(1)),
-                      tot>0?h('span',{style:{fontSize:10,color:C.faint,fontFamily:'JetBrains Mono,monospace'}},tot+' acts'):null,
-                      a.err_action_count>0?h('span',{style:{fontSize:10,color:C.red}},'⚠ err'):null));
-                })));
-          }));
-      }));
+      // Legend
+      h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:8,padding:'6px 12px',
+        background:C.panel2,borderRadius:6,border:'1px solid '+C.border,flexShrink:0,flexWrap:'wrap'}},
+        ...legendTypes.map(lt=>{const s=LS[lt];
+          return h('div',{key:lt,style:{display:'flex',alignItems:'center',gap:5}},
+            h('div',{style:{width:20,height:0,borderTop:'2px '+(s.dash?'dashed':'solid')+' '+s.color}}),
+            h('span',{style:{fontSize:9,fontWeight:600,color:C.dim,textTransform:'uppercase',letterSpacing:'.3px'}},s.label));})),
+      // Graph viewport
+      linkedNodes.length
+        ?h('div',{style:{flex:1,overflowX:'auto',overflowY:'auto',border:'1px solid '+C.border,
+            borderRadius:8,background:C.panel2+'80',position:'relative',minHeight:0}},
+          h('div',{style:{position:'relative',width:Math.max(totalW,400),height:Math.max(totalH,200),minWidth:'100%'}},
+            // SVG edge + arrowhead overlay
+            h('svg',{style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',overflow:'visible'}},
+              h('defs',{},
+                ...Object.entries(LS).map(([lt,s])=>
+                  h('marker',{key:lt,id:'arrm-'+lt,markerWidth:7,markerHeight:7,refX:6,refY:3.5,orient:'auto'},
+                    h('path',{d:'M0,0 L0,7 L7,3.5 z',fill:s.color})))),
+              ...edges.map((e,i)=>{
+                const sp=npos[e.source],tp=npos[e.target];if(!sp||!tp)return null;
+                const s=LS[e.link_type]||{color:'#888',dash:null};
+                const x1=sp.x+NW,y1=sp.y+NH/2,x2=tp.x,y2=tp.y+NH/2,mx=(x1+x2)/2;
+                const dim=hovIdx&&!hovIdx.has(i);
+                const lbl=e.link_detail&&!dim?(e.link_detail.length>26?e.link_detail.slice(0,26)+'…':e.link_detail):null;
+                return h(React.Fragment,{key:i},
+                  h('path',{d:'M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2,
+                    fill:'none',stroke:s.color,strokeWidth:dim?0.7:1.8,opacity:dim?0.08:0.82,
+                    strokeDasharray:s.dash||null,markerEnd:'url(#arrm-'+e.link_type+')'}),
+                  lbl?h('text',{x:(x1+x2)/2,y:(y1+y2)/2-5,textAnchor:'middle',fontSize:8,
+                    fill:s.color,opacity:0.7,fontFamily:'JetBrains Mono,monospace'},lbl):null);})),
+            // Node cards
+            ...linkedNodes.map(n=>{
+              const pos=npos[n.agent_gid];if(!pos)return null;
+              const dc=this.smDomainColor(n.domain_name);
+              const isHub=n.is_hub,isH=hov===n.agent_gid,isDim=hovPeers&&!hovPeers.has(n.agent_gid);
+              return h('div',{key:n.agent_gid,
+                onClick:()=>this.smOpenAgent(n.agent_gid),
+                onMouseEnter:()=>this.setState({skymfgMapHovered:n.agent_gid}),
+                onMouseLeave:()=>this.setState({skymfgMapHovered:null}),
+                style:{position:'absolute',left:pos.x,top:pos.y,width:NW,padding:'8px 10px',
+                  background:C.card,border:(isHub?2:1)+'px solid '+(isH?dc:C.border),
+                  borderRadius:7,cursor:'pointer',borderTop:'3px solid '+dc,
+                  boxShadow:isH?'0 3px 12px '+dc+'50':'0 1px 2px rgba(0,0,0,.04)',
+                  opacity:isDim?0.14:1,transition:'opacity 80ms,box-shadow 80ms',userSelect:'none'}},
+                h('div',{style:{fontSize:isHub?11.5:11,fontWeight:isHub?800:600,color:C.text,
+                  lineHeight:1.3,marginBottom:4,wordBreak:'break-word',minHeight:28}},n.agent_xid),
+                h('div',{style:{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}},
+                  h('span',{style:{fontSize:9,fontWeight:700,color:dc,background:dc+'18',borderRadius:3,
+                    padding:'1px 5px',maxWidth:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
+                    (n.domain_name||'').replace('SKYMFG/','').replace('SKYMFG','ROOT')),
+                  isHub?h('span',{style:{fontSize:9,fontWeight:800,color:C.gold,background:C.gold+'18',borderRadius:3,padding:'1px 5px'}},'HUB'):null,
+                  n.link_count?h('span',{style:{fontSize:9,color:C.faint,fontFamily:'JetBrains Mono,monospace'}},n.link_count+' lk'):null));
+            })))
+        :h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:C.faint,fontSize:12}},
+            'No connected agents for this selection'),
+      // Isolated agents compact strip
+      isolatedNodes.length?h('div',{style:{marginTop:10,flexShrink:0}},
+        h('div',{style:{fontSize:11,fontWeight:600,color:C.dim,marginBottom:6}},
+          'Agents without causal dependencies ('+isolatedNodes.length+')'),
+        h('div',{style:{maxHeight:120,overflowY:'auto',border:'1px solid '+C.border,borderRadius:6,
+          background:C.panel2+'80',padding:'8px 10px'}},
+          h('div',{style:{display:'flex',flexWrap:'wrap',gap:5}},
+            ...isolatedNodes.map(n=>{
+              const dc=this.smDomainColor(n.domain_name);
+              return h('span',{key:n.agent_gid,title:n.agent_gid,onClick:()=>this.smOpenAgent(n.agent_gid),
+                style:{fontSize:9.5,fontWeight:600,color:dc,background:dc+'12',border:'1px solid '+dc+'28',
+                  borderRadius:4,padding:'2px 7px',cursor:'pointer',whiteSpace:'nowrap',transition:'background 80ms'},
+                onMouseEnter:e=>{e.currentTarget.style.background=dc+'22';},
+                onMouseLeave:e=>{e.currentTarget.style.background=dc+'12';}},n.agent_xid);})))):null);
   }
 
   // ─── SKYMFG: 3C AGENT LIST ───────────────────────────────────────────────────
 
   renderSkymfgList(){ const C=this.C,h=React.createElement;
     const {skymfgListSearch:q,skymfgListDomains:fDom,skymfgListDQTs:fDQT,
-           skymfgListActiveOnly:activeOnly,skymfgListSort:sc,skymfgListSortDir:sd}=this.state;
+           skymfgListActiveOnly:activeOnly,skymfgListSort:sc,skymfgListSortDir:sd,
+           skymfgListLinkedOnly:linkedOnly,skymfgListLinkData:ld}=this.state;
     const doms=this.skymfgDomains||[];
     const allDQTs=[...new Set((this.skymfgAgents||[]).map(a=>a.data_query_type_gid))].sort();
+
+    // Lazy-load tier-1 link graph for counts (domain-agnostic, all agents)
+    if(!ld&&!this._listLinkLoading){
+      this._listLinkLoading=true;
+      this._fetchLinkGraph(null,1).then(g=>{this._listLinkLoading=false;this.setState({skymfgListLinkData:g});});
+    }
+    // Build per-agent trigger/triggered-by count maps from edges
+    const trigC={},trigByC={};
+    if(ld&&ld.edges){
+      ld.edges.forEach(e=>{trigC[e.source]=(trigC[e.source]||0)+1;trigByC[e.target]=(trigByC[e.target]||0)+1;});
+    }
+
     let agents=this.smFilteredAgents();
     if(q){ const ql=q.toLowerCase(); agents=agents.filter(a=>a.agent_xid.toLowerCase().includes(ql)||a.agent_gid.toLowerCase().includes(ql)); }
     if(fDom.length) agents=agents.filter(a=>fDom.includes(a.domain_name));
     if(fDQT.length) agents=agents.filter(a=>fDQT.includes(a.data_query_type_gid));
     if(activeOnly) agents=agents.filter(a=>a.is_active);
-    agents=[...agents].sort((a,b)=>{ let av=a[sc],bv=b[sc];
+    if(linkedOnly) agents=agents.filter(a=>(trigC[a.agent_gid]||0)+(trigByC[a.agent_gid]||0)>0);
+    agents=[...agents].sort((a,b)=>{
+      let av=sc==='trigger_count'?(trigC[a.agent_gid]||0):sc==='triggered_by_count'?(trigByC[a.agent_gid]||0):a[sc];
+      let bv=sc==='trigger_count'?(trigC[b.agent_gid]||0):sc==='triggered_by_count'?(trigByC[b.agent_gid]||0):b[sc];
       if(typeof av==='string') av=av.toLowerCase(); if(typeof bv==='string') bv=bv.toLowerCase();
       return av<bv?(sd==='asc'?-1:1):av>bv?(sd==='asc'?1:-1):0; });
     const sh=(col,lbl)=>h('button',{onClick:()=>this.setState(s=>({skymfgListSort:col,
@@ -6571,6 +6745,10 @@ class Component extends DCLogic {
         h('label',{style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:C.dim,cursor:'pointer',userSelect:'none'}},
           h('input',{type:'checkbox',checked:activeOnly,onChange:e=>this.setState({skymfgListActiveOnly:e.target.checked})}),
           'Active only'),
+        h('label',{style:{display:'flex',alignItems:'center',gap:5,fontSize:11,cursor:'pointer',userSelect:'none',
+          color:linkedOnly?C.teal:C.dim,fontWeight:linkedOnly?700:400}},
+          h('input',{type:'checkbox',checked:linkedOnly,onChange:e=>this.setState({skymfgListLinkedOnly:e.target.checked})}),
+          'Linked only'),
         h('span',{style:{fontSize:11,color:C.faint,fontFamily:'JetBrains Mono,monospace'}},agents.length+' results')),
       h('div',{style:{flex:1,overflowY:'auto',border:'1px solid '+C.border,borderRadius:8}},
         h('table',{style:{width:'100%',borderCollapse:'collapse',fontSize:11.5}},
@@ -6584,6 +6762,8 @@ class Component extends DCLogic {
               h('th',{style:{padding:'8px 12px',textAlign:'right',borderBottom:'1px solid '+C.border,fontWeight:'normal'}},sh('norm_action_count','Acts')),
               h('th',{style:{padding:'8px 12px',textAlign:'right',borderBottom:'1px solid '+C.border,fontWeight:'normal'}},sh('err_action_count','Err')),
               h('th',{style:{padding:'8px 12px',textAlign:'right',borderBottom:'1px solid '+C.border,fontWeight:'normal'}},sh('complexity_score','Cx')),
+              h('th',{style:{padding:'8px 12px',textAlign:'center',borderBottom:'1px solid '+C.border,fontWeight:'normal',whiteSpace:'nowrap'}},sh('trigger_count','Triggers')),
+              h('th',{style:{padding:'8px 12px',textAlign:'center',borderBottom:'1px solid '+C.border,fontWeight:'normal',whiteSpace:'nowrap'}},sh('triggered_by_count','Triggered by')),
               h('th',{style:{padding:'8px 12px',textAlign:'left',borderBottom:'1px solid '+C.border,fontWeight:'normal',fontSize:10,color:C.dim,letterSpacing:'.5px',textTransform:'uppercase'}},'Release'))),
           h('tbody',{},
             ...agents.map(a=>{
@@ -6618,6 +6798,14 @@ class Component extends DCLogic {
                 h('td',{style:{padding:'7px 12px',borderBottom:'1px solid '+C.line,textAlign:'right',fontFamily:'JetBrains Mono,monospace',color:C.dim}},a.norm_action_count),
                 h('td',{style:{padding:'7px 12px',borderBottom:'1px solid '+C.line,textAlign:'right',fontFamily:'JetBrains Mono,monospace',color:a.err_action_count>0?C.red:C.faint}},a.err_action_count||'—'),
                 h('td',{style:{padding:'7px 12px',borderBottom:'1px solid '+C.line,textAlign:'right',fontFamily:'JetBrains Mono,monospace',fontWeight:700,color:cxC}},cx.toFixed(1)),
+                (() => { const tc=trigC[a.agent_gid]||0;
+                  return h('td',{style:{padding:'7px 12px',borderBottom:'1px solid '+C.line,textAlign:'center'}},
+                    tc?h('span',{style:{fontSize:10,fontWeight:700,color:'#DC2626',background:'#DC262618',borderRadius:3,padding:'1px 7px',fontFamily:'JetBrains Mono,monospace'}},tc):
+                    h('span',{style:{fontSize:10,color:C.faint}},'—')); })(),
+                (() => { const tbc=trigByC[a.agent_gid]||0;
+                  return h('td',{style:{padding:'7px 12px',borderBottom:'1px solid '+C.line,textAlign:'center'}},
+                    tbc?h('span',{style:{fontSize:10,fontWeight:700,color:'#059669',background:'#05996918',borderRadius:3,padding:'1px 7px',fontFamily:'JetBrains Mono,monospace'}},tbc):
+                    h('span',{style:{fontSize:10,color:C.faint}},'—')); })(),
                 (() => { const rv=this.smOtmRelease(a.otm_release);
                   return h('td',{style:{padding:'7px 12px',borderBottom:'1px solid '+C.line}},
                     h('span',{title:a.otm_release||'',style:{fontSize:9.5,fontWeight:700,color:rv.color,
@@ -6824,6 +7012,90 @@ class Component extends DCLogic {
           ...(d.events||[]).map((ev,i)=>h('div',{key:i,style:{padding:'10px 14px',background:C.card,border:'1px solid '+C.border,borderRadius:7,borderLeft:'3px solid '+C.teal}},
             h('div',{style:{fontSize:12,fontWeight:700,color:C.teal,marginBottom:ev.event_params&&ev.event_params!=='ANY'?4:0}},ev.event_gid),
             ev.event_params&&ev.event_params!=='ANY'?h('div',{style:{fontSize:10,fontFamily:'JetBrains Mono,monospace',color:C.faint,wordBreak:'break-all'}},ev.event_params):null)))):null,
+      // ── Agent Dependencies (from agent_links table) ───────────────────────────
+      (() => {
+        const links=this.state.skymfgAgentLinks;
+        if(!links) return null;
+        const {triggers=[],triggered_by=[],peers=[],shared_systems=[],counts={}}=links;
+        if(!counts.total_links) return null;
+        const LTCOL={RAISES_EVENT:'#DC2626',FOR_EACH_DELEGATES:'#7C3AED',WRAPPER_DELEGATES:'#2563EB',STATUS_CHAIN:'#059669'};
+        const relOpen=this.state.skymfgAgentRelOpen;
+
+        const agChip=(gid,xid,domain,key)=>{
+          const dc=this.smDomainColor(domain||'');
+          return h('span',{key,title:gid,onClick:()=>this.smOpenAgent(gid),
+            style:{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 8px',
+              borderRadius:4,background:dc+'10',border:'1px solid '+dc+'30',
+              cursor:'pointer',fontSize:10.5,fontWeight:600,color:dc,flex:'none'},
+            onMouseEnter:e=>{e.currentTarget.style.background=dc+'22';},
+            onMouseLeave:e=>{e.currentTarget.style.background=dc+'10';}},
+            h('span',{style:{width:5,height:5,borderRadius:'50%',background:dc,flex:'none'}}),
+            xid||gid);
+        };
+
+        const depCard=(lk,isOut,i)=>{
+          const lc=LTCOL[lk.link_type]||C.dim;
+          const gid=isOut?lk.target_agent_gid:lk.source_agent_gid;
+          const xid=isOut?lk.target_agent_xid:lk.source_agent_xid;
+          const dom=isOut?lk.target_domain:lk.source_domain;
+          const dqt=isOut?lk.target_data_query_type:lk.source_data_query_type;
+          return h('div',{key:i,style:{padding:'8px 11px',background:C.card,border:'1px solid '+C.border,
+            borderRadius:6,borderLeft:'3px solid '+lc,marginBottom:4}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:5,marginBottom:lk.link_detail?3:0,flexWrap:'wrap'}},
+              agChip(gid,xid,dom,'c'),
+              dom?h('span',{style:{fontSize:9,fontWeight:700,color:C.faint,background:C.panel2,
+                borderRadius:3,padding:'1px 5px',flex:'none',fontFamily:'JetBrains Mono,monospace'}},dom):null),
+            h('div',{style:{fontSize:9.5,color:C.faint,fontFamily:'JetBrains Mono,monospace'}},
+              (lk.link_type?'via '+lk.link_type:'')+(lk.link_detail?': '+lk.link_detail:'')+(dqt?' · DQT: '+dqt:'')));
+        };
+
+        return h('div',{style:{marginBottom:16,border:'1px solid '+C.border,borderRadius:8,overflow:'hidden'}},
+          h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:C.panel2,borderBottom:'1px solid '+C.border}},
+            h('span',{style:{fontSize:13,fontWeight:800,color:C.text}},'Agent dependencies'),
+            h('span',{style:{fontSize:10,fontWeight:700,color:C.faint,background:C.line,borderRadius:10,
+              padding:'1px 8px',fontFamily:'JetBrains Mono,monospace'}},counts.total_links)),
+          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0,background:C.line}},
+            h('div',{style:{background:C.panel,padding:'12px 14px'}},
+              h('div',{style:{fontSize:9.5,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.6px',marginBottom:8}},
+                'This agent triggers → ('+triggers.length+')'),
+              triggers.length
+                ?triggers.map((t,i)=>depCard(t,true,i))
+                :h('div',{style:{fontSize:11,color:C.faint,fontStyle:'italic'}},'This agent does not trigger other agents')),
+            h('div',{style:{background:C.panel,padding:'12px 14px',borderLeft:'1px solid '+C.line}},
+              h('div',{style:{fontSize:9.5,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.6px',marginBottom:8}},
+                '← Triggered by ('+triggered_by.length+')'),
+              triggered_by.length
+                ?triggered_by.map((t,i)=>depCard(t,false,i))
+                :h('div',{style:{fontSize:11,color:C.faint,fontStyle:'italic'}},'No other agents trigger this agent directly'))),
+          (peers.length||shared_systems.length)?h('div',{style:{borderTop:'1px solid '+C.border}},
+            h('div',{onClick:()=>this.setState(s=>({skymfgAgentRelOpen:!s.skymfgAgentRelOpen})),
+              style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 14px',
+                cursor:'pointer',userSelect:'none',background:C.panel2}},
+              h('span',{style:{fontSize:11,fontWeight:700,color:C.dim}},
+                'Related agents  ·  '+peers.length+' execution peers · '+shared_systems.length+' shared systems'),
+              h('span',{style:{fontSize:11,color:C.faint}},relOpen?'▲':'▼')),
+            relOpen?h('div',{style:{padding:'12px 14px',background:C.panel}},
+              peers.length?h('div',{style:{marginBottom:shared_systems.length?10:0}},
+                h('div',{style:{fontSize:9.5,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:6}},
+                  'Agents listening on the same event ('+peers.length+')'),
+                h('div',{style:{display:'flex',flexWrap:'wrap',gap:5}},
+                  ...peers.map((p,i)=>agChip(p.peer_agent_gid,p.peer_agent_xid,p.peer_domain,i)))):null,
+              shared_systems.length?h('div',{},
+                h('div',{style:{fontSize:9.5,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:6}},
+                  'Agents using the same external system ('+shared_systems.length+')'),
+                (() => {
+                  const bySys={};
+                  shared_systems.forEach(s=>{(bySys[s.link_detail]=bySys[s.link_detail]||[]).push(s);});
+                  return h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+                    ...Object.entries(bySys).map(([sys,ags])=>
+                      h('div',{key:sys},
+                        h('div',{style:{fontSize:9.5,fontFamily:'JetBrains Mono,monospace',color:C.dim,marginBottom:4}},sys),
+                        h('div',{style:{display:'flex',flexWrap:'wrap',gap:5}},
+                          ...ags.map((p,i)=>agChip(p.peer_agent_gid,p.peer_agent_xid,p.peer_domain,i))))));
+                })()
+              ):null):null
+          ):null);
+      })(),
       // Normal flow
       normalActs.length?h('div',{style:{marginBottom:16}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8,padding:'7px 12px',background:C.green+'0E',borderRadius:6,borderLeft:'4px solid '+C.green}},

@@ -439,6 +439,57 @@ app.get('/api/links/impact/:agentGid', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/links/stats — dashboard dependency summary computed in DB
+app.get('/api/links/stats', async (req, res) => {
+  const CAUSAL = ['RAISES_EVENT','FOR_EACH_DELEGATES','WRAPPER_DELEGATES','STATUS_CHAIN'];
+  try {
+    const [causalRow, hubRow, isolatedRow, xdomRow, extRow, topHubs] = await Promise.all([
+      query(`SELECT COUNT(*)::int AS cnt FROM agent_links
+             WHERE link_type=ANY($1) AND direction='DIRECTIONAL'`, [CAUSAL]),
+      query(`SELECT COUNT(*)::int AS cnt FROM (
+               SELECT agent_gid FROM (
+                 SELECT source_agent_gid AS agent_gid FROM agent_links WHERE link_type=ANY($1) AND direction='DIRECTIONAL'
+                 UNION ALL
+                 SELECT target_agent_gid         FROM agent_links WHERE link_type=ANY($1) AND direction='DIRECTIONAL'
+               ) sub GROUP BY agent_gid HAVING COUNT(*)>=3
+             ) h`, [CAUSAL]),
+      query(`SELECT COUNT(*)::int AS cnt FROM agents a
+             WHERE NOT EXISTS(
+               SELECT 1 FROM agent_links al WHERE al.link_type=ANY($1) AND al.direction='DIRECTIONAL'
+               AND (al.source_agent_gid=a.agent_gid OR al.target_agent_gid=a.agent_gid))`, [CAUSAL]),
+      query(`SELECT COUNT(*)::int AS cnt FROM agent_links al
+             JOIN agents sa ON sa.agent_gid=al.source_agent_gid
+             JOIN agents ta ON ta.agent_gid=al.target_agent_gid
+             WHERE al.link_type=ANY($1) AND al.direction='DIRECTIONAL'
+               AND sa.domain_name<>ta.domain_name`, [CAUSAL]),
+      query(`SELECT COUNT(DISTINCT link_detail)::int AS cnt FROM agent_links
+             WHERE link_type='SHARED_EXTERNAL_SYSTEM'`),
+      query(`WITH lc AS (
+               SELECT source_agent_gid AS gid,'out' AS dir FROM agent_links WHERE link_type=ANY($1) AND direction='DIRECTIONAL'
+               UNION ALL
+               SELECT target_agent_gid,'in' FROM agent_links WHERE link_type=ANY($1) AND direction='DIRECTIONAL'
+             ), ct AS (
+               SELECT gid,
+                 COUNT(*) FILTER(WHERE dir='out') AS trigger_count,
+                 COUNT(*) FILTER(WHERE dir='in')  AS triggered_by_count,
+                 COUNT(*) AS total
+               FROM lc GROUP BY gid HAVING COUNT(*)>=3
+             )
+             SELECT c.gid AS agent_gid, a.agent_xid, c.trigger_count::int, c.triggered_by_count::int, c.total::int
+             FROM ct c JOIN agents a ON a.agent_gid=c.gid
+             ORDER BY c.total DESC LIMIT 10`, [CAUSAL]),
+    ]);
+    res.json({
+      causal_links: causalRow[0]?.cnt||0,
+      hub_agents:   hubRow[0]?.cnt||0,
+      isolated_agents: isolatedRow[0]?.cnt||0,
+      cross_domain_links: xdomRow[0]?.cnt||0,
+      external_touchpoints: extRow[0]?.cnt||0,
+      top_hubs: topHubs,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── ANNOTATIONS / TRIBAL KNOWLEDGE ──────────────────────────────────────────
 
 // Bulk: all annotations (grouped by agent for startup load); supports ?tag= and ?q=
