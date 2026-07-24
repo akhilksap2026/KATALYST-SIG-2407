@@ -1,0 +1,67 @@
+STEP 1 — DATABASE: THE agent_links TABLE
+sql
+CREATE TABLE IF NOT EXISTS agent_links (
+  id                  SERIAL PRIMARY KEY,
+  source_agent_gid    TEXT NOT NULL REFERENCES agents(agent_gid),
+  target_agent_gid    TEXT NOT NULL REFERENCES agents(agent_gid),
+  link_type           TEXT NOT NULL,
+  link_detail         TEXT,          -- the event name, status value, external system GID, etc.
+  direction           TEXT NOT NULL DEFAULT 'DIRECTIONAL',  -- 'DIRECTIONAL' or 'UNDIRECTED'
+  UNIQUE(source_agent_gid, target_agent_gid, link_type, link_detail)
+);
+
+CREATE INDEX idx_links_source ON agent_links(source_agent_gid);
+CREATE INDEX idx_links_target ON agent_links(target_agent_gid);
+CREATE INDEX idx_links_type   ON agent_links(link_type);
+Link Types — The Taxonomy
+
+There are exactly 6 link types. Each has a defined meaning in OTM agent architecture:
+
+link_type	direction	Meaning	Visual Treatment
+RAISES_EVENT	DIRECTIONAL	Agent A's action raises an internal event that Agent B listens for	Solid arrow, red/orange
+FOR_EACH_DELEGATES	DIRECTIONAL	Agent A's FOR EACH action fires a custom event consumed by Agent B	Solid arrow, purple
+WRAPPER_DELEGATES	DIRECTIONAL	A wrapper agent delegates to its inner processing agent	Dashed arrow, blue
+STATUS_CHAIN	DIRECTIONAL	Agent A sets a status value; Agent B triggers on that status change	Solid arrow, green
+EXECUTION_PEER	UNDIRECTED	Agents in the same domain listen for the same event on the same DQT	Dotted line, gray
+SHARED_EXTERNAL_SYSTEM	UNDIRECTED	Agents send integrations to the same external system	Dotted line, teal
+Priority Tiers for Display
+
+Not all link types are equally important. When displaying, always show Tier 1 links; show Tier 2 on request or in expanded view; Tier 3 in dedicated relationship panels only.
+
+Tier 1 (Causal): RAISES_EVENT, FOR_EACH_DELEGATES, WRAPPER_DELEGATES, STATUS_CHAIN — these are actual runtime causation. Agent A fires, Agent B responds. These are the edges on the dependency graph.
+Tier 2 (Contextual): SHARED_EXTERNAL_SYSTEM — agents integrating with the same ERP endpoint. Important for impact analysis.
+Tier 3 (Co-occurrence): EXECUTION_PEER — agents that listen on the same event. Useful for understanding contention but very noisy on a visual graph.
+Load Seed Data
+
+Load the file catalyst_agent_links.json (attached separately). It contains 196 link records.
+
+The JSON structure is a flat array:
+
+json
+[
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - INFEASIBLE",
+    "direction": "DIRECTIONAL"
+  },
+  ...
+]
+
+Use INSERT ... ON CONFLICT DO NOTHING for idempotent loading.
+
+Post-load verification:
+
+sql
+SELECT link_type, direction, COUNT(*) FROM agent_links GROUP BY link_type, direction ORDER BY COUNT(*) DESC;
+
+Expected:
+
+EXECUTION_PEER / UNDIRECTED: 124
+SHARED_EXTERNAL_SYSTEM / UNDIRECTED: 33
+RAISES_EVENT / DIRECTIONAL: 28
+FOR_EACH_DELEGATES / DIRECTIONAL: 4
+STATUS_CHAIN / DIRECTIONAL: 4
+WRAPPER_DELEGATES / DIRECTIONAL: 3
+Total: 196

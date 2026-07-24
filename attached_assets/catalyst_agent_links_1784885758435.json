@@ -1,0 +1,1374 @@
+[
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.LC SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - INFEASIBLE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.LC SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - BLOCKED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.LC SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - COMPLETED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.LC SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - DELAYED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.LC SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LATE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.LC SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LOADED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.LC SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - ENROUTE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - INFEASIBLE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - BLOCKED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - COMPLETED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - DELAYED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LATE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LOADED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - ENROUTE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.SHIPMENT EVENT TRACKER V2",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - INFEASIBLE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.SHIPMENT EVENT TRACKER V2",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - BLOCKED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.SHIPMENT EVENT TRACKER V2",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - COMPLETED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.SHIPMENT EVENT TRACKER V2",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - DELAYED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.SHIPMENT EVENT TRACKER V2",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LATE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.SHIPMENT EVENT TRACKER V2",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LOADED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.SHIPMENT EVENT TRACKER V2",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - ENROUTE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - INFEASIBLE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - BLOCKED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - COMPLETED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - DELAYED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LATE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - LOADED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.SHIPMENT EVENT TRACKER",
+    "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+    "link_type": "RAISES_EVENT",
+    "link_detail": "SHIPMENT STATUS - ENROUTE",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.ORDER_RELEASE_MODIFIED",
+    "target_agent_gid": "SKYMFG/TRAINING.RERATE_REDRIVER",
+    "link_type": "FOR_EACH_DELEGATES",
+    "link_detail": "SKYMFG/TRAINING.RERATE_REDRIVER",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.EQUIPMENT_MODIFYING",
+    "target_agent_gid": "SKYMFG/DEMO.DRIVER_CREATION_MODIFYING",
+    "link_type": "FOR_EACH_DELEGATES",
+    "link_detail": "SKYMFG/DEMO.DRIVER_EQUIPMENT_UPDATING",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.DMT-CREATED-IUX",
+    "target_agent_gid": "SKYMFG/RAIL.SHP-SET-RAIL-DEMU-COSTS",
+    "link_type": "FOR_EACH_DELEGATES",
+    "link_detail": "SKYMFG/RAIL.SHP-SET-DEMU-COSTS",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.ORD-CALC-RAIL-ACCRUAL-IUXRM-V02",
+    "target_agent_gid": "SKYMFG/RAIL.SHP-RAIL-ALLOCATE-COST-IUXRM-V01",
+    "link_type": "FOR_EACH_DELEGATES",
+    "link_detail": "SKYMFG/RAIL.SHP-SEND-RAIL-ACCRUAL-INTEGRATION",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER",
+    "link_type": "WRAPPER_DELEGATES",
+    "link_detail": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API",
+    "link_type": "WRAPPER_DELEGATES",
+    "link_detail": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API",
+    "link_type": "WRAPPER_DELEGATES",
+    "link_detail": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.ORD-MODIFIED-BP-X-V03",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "link_type": "STATUS_CHAIN",
+    "link_detail": "ORDER MODIFIED_MODIFIED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "link_type": "STATUS_CHAIN",
+    "link_detail": "ORDER MODIFIED_MODIFIED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "link_type": "STATUS_CHAIN",
+    "link_detail": "ORDER MODIFIED_DENIED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "link_type": "STATUS_CHAIN",
+    "link_detail": "ORDER MODIFIED_ACKNOWLEDGED",
+    "direction": "DIRECTIONAL"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_MODIFIED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_ACKNOWLEDGED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_MODIFIED_DENIED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_CANCELLED_CANCELLED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_FAILED_V001",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "target_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.ORDERS PLANNED",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.ORDERS UNSCHEDULED",
+    "target_agent_gid": "SKYMFG/LW.ORDERS FAILED TO PLAN",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.ORDER RELEASE - MODIFY V2",
+    "target_agent_gid": "SKYMFG.ORDER RELEASE - MODIFY",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - MODIFIED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.SH_FLEET_UNASSIGN_AND_CLEANUP",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_SPOT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.UPDATE_CONTRACT_RATE_20220726",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "target_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATED",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_SEND_SPOT_BID_TENDER_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_SECURE_RESOURCES_STATUS_CHANGED",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API_WRAPPER",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_PIYOVI_STAUS_CHANGED-PIYOVI_SHIP_CREATE_ERR",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API_WRAPPER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.ABC_INVOICE_APPROVE_INDICATOR",
+    "target_agent_gid": "SKYMFG/TRAINING.ABC_INVOICE_APPROVE_FAIL_INDICATOR",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/DEMO.LEGACY SHIPMENT MATCHING",
+    "target_agent_gid": "SKYMFG/DEMO.DAMAGE_EVENT_RECEIVED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "TRACKING EVENT|TRACKING EVENT - PROCESSING REQUEST",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-INVOICE-CREATED-INTEGRATION",
+    "target_agent_gid": "SKYMFG/LW.LW-INVOICE-CREATED-USER",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - CREATED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.INVOICE APPROVED",
+    "target_agent_gid": "SKYMFG/LW.INVOICE FAILED APPROVAL",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.OR_CREATED_PERFORM",
+    "target_agent_gid": "SKYMFG/TRAINING.OR_CREATED_PERFORM_ACTIONS",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - CREATED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.OR_CREATED_PERFORM",
+    "target_agent_gid": "SKYMFG/TRAINING.ORDER_ATTRIBUTE1_MODIFIED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - CREATED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/TRAINING.OR_CREATED_PERFORM_ACTIONS",
+    "target_agent_gid": "SKYMFG/TRAINING.ORDER_ATTRIBUTE1_MODIFIED",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - CREATED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_APPROVE_FAILED_IU",
+    "target_agent_gid": "SKYMFG/RAIL.INV_APPROVE_PASSED_IU",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_APPROVE_FAILED_IU",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MATCH_FAILED_IUX",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_APPROVE_FAILED_IU",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MATCH_PASSED_IUX_V4",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_APPROVE_PASSED_IU",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MATCH_FAILED_IUX",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_APPROVE_PASSED_IU",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MATCH_PASSED_IUX_V4",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_MATCH_FAILED_IUX",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MATCH_PASSED_IUX_V4",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - STATUS CHANGED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_MODIFIED_BP_U_V01",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MODIFIED_BP_X_V01",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - MODIFIED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_MODIFIED_BP_U_V01",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MODIFIED_IUX_V02",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - MODIFIED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.INV_MODIFIED_BP_X_V01",
+    "target_agent_gid": "SKYMFG/RAIL.INV_MODIFIED_IUX_V02",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "INVOICE|INVOICE - MODIFIED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.ORD-ACTUALS-POSTED-BP-X-V01",
+    "target_agent_gid": "SKYMFG/RAIL.ORD-MODIFIED-BP-X-V03",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - MODIFIED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.ORD-ACTUALS-POSTED-BP-X-V01",
+    "target_agent_gid": "SKYMFG/RAIL.ORD-MODIFIED-IUX-V04",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - MODIFIED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.ORD-MODIFIED-BP-X-V03",
+    "target_agent_gid": "SKYMFG/RAIL.ORD-MODIFIED-IUX-V04",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "ORDER RELEASE|ORDER - MODIFIED",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.SHP-LOAD SHIPMENT TO HD",
+    "target_agent_gid": "SKYMFG/RAIL.SHP-TENDER-ACCEPTED-IUXRM-V07",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "SHIPMENT|SHIPMENT TENDER - PICKUP NOTIFY",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.TRE-PROCESSING REQUEST-SHP-IUXRM-V08",
+    "target_agent_gid": "SKYMFG/RAIL.TRE-RAIL-PROCESSING REQUEST-SHP-IUXRM-V01",
+    "link_type": "EXECUTION_PEER",
+    "link_detail": "TRACKING EVENT|TRACKING EVENT - PROCESSING REQUEST",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_PLANNED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_ORDER_RELEASE_PLANNING_UNSCHEDULED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_RELEASE_STATUS_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-SHIPMENT-CREATED",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-SHIPMENT-CREATED",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-SHIPMENT-CREATED",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-SHIPMENT-CREATED",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-SHIPMENT-CREATED",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-SHIPMENT-CREATED",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW-SHIPMENT-CREATED",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ACCEPTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_COMPLETED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_DELAYED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_ENROUTE_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_REJECTED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/LW.LW_SHIPMENT_TENDERED_V001",
+    "target_agent_gid": "SKYMFG/LW.LW_SHIPMENT_WITHDRAWN_V001",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/LW.LW_PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_API",
+    "target_agent_gid": "SKYMFG.OTM_SH_DFN_STATUS_CHANGED_NON_API",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG.DEMO_PIYOVI_PARCEL_SHIPCONFIRM",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.ORD-REMOVED-BP-X-V03",
+    "target_agent_gid": "SKYMFG/RAIL.SHP-REMOVED-BP-IUX-V01",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/RAIL.PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.ORD-REMOVED-BP-X-V03",
+    "target_agent_gid": "SKYMFG/RAIL.SHP_POST_PLANNED_SHIPMENT",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/RAIL.PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  },
+  {
+    "source_agent_gid": "SKYMFG/RAIL.SHP-REMOVED-BP-IUX-V01",
+    "target_agent_gid": "SKYMFG/RAIL.SHP_POST_PLANNED_SHIPMENT",
+    "link_type": "SHARED_EXTERNAL_SYSTEM",
+    "link_detail": "SKYMFG/RAIL.PLANNED_SHIPMENT_TO_ERP",
+    "direction": "UNDIRECTED"
+  }
+]

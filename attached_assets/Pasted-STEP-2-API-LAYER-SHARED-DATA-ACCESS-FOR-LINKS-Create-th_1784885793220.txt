@@ -1,0 +1,161 @@
+STEP 2 — API LAYER: SHARED DATA ACCESS FOR LINKS
+
+Create the following API routes. These are the only way any UI module should access link data — no direct SQL in components.
+
+GET /api/agents/:agentGid/links
+
+Returns all links for a given agent (both as source and as target).
+
+json
+{
+  "agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+  "triggers": [
+    {
+      "link_type": "RAISES_EVENT",
+      "target_agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+      "target_agent_xid": "RAISE ORDER ON SHIPMENT EVENTS",
+      "target_domain": "PUBLIC",
+      "link_detail": "SHIPMENT STATUS - INFEASIBLE",
+      "target_data_query_type": "SHIPMENT"
+    }
+  ],
+  "triggered_by": [
+    // agents whose actions trigger this agent
+  ],
+  "peers": [
+    {
+      "link_type": "EXECUTION_PEER",
+      "peer_agent_gid": "...",
+      "peer_agent_xid": "...",
+      "peer_domain": "...",
+      "link_detail": "SHIPMENT|SHIPMENT STATUS - TRACKING"
+    }
+  ],
+  "shared_systems": [
+    {
+      "link_type": "SHARED_EXTERNAL_SYSTEM",
+      "peer_agent_gid": "...",
+      "peer_agent_xid": "...",
+      "link_detail": "SKYMFG/RAIL.ACCRUAL_TO_ERP"
+    }
+  ],
+  "counts": {
+    "triggers": 7,
+    "triggered_by": 0,
+    "peers": 3,
+    "shared_systems": 2,
+    "total_links": 12
+  }
+}
+
+SQL logic:
+
+sql
+-- Outbound (this agent triggers others)
+SELECT al.*, a.agent_xid, a.domain_name, a.data_query_type_gid
+FROM agent_links al
+JOIN agents a ON a.agent_gid = al.target_agent_gid
+WHERE al.source_agent_gid = $1
+  AND al.direction = 'DIRECTIONAL';
+
+-- Inbound (others trigger this agent)
+SELECT al.*, a.agent_xid, a.domain_name, a.data_query_type_gid
+FROM agent_links al
+JOIN agents a ON a.agent_gid = al.source_agent_gid
+WHERE al.target_agent_gid = $1
+  AND al.direction = 'DIRECTIONAL';
+
+-- Undirected (peers and shared systems)
+SELECT al.*, a.agent_xid, a.domain_name, a.data_query_type_gid
+FROM agent_links al
+JOIN agents a ON a.agent_gid = CASE
+  WHEN al.source_agent_gid = $1 THEN al.target_agent_gid
+  ELSE al.source_agent_gid END
+WHERE (al.source_agent_gid = $1 OR al.target_agent_gid = $1)
+  AND al.direction = 'UNDIRECTED';
+GET /api/links/graph?domain=...&tier=1
+
+Returns the full link graph for the Agent Map visualization. Supports filtering:
+
+domain (optional): filter to a specific domain
+tier (optional): 1 = causal only, 2 = causal + contextual, 3 = all
+Default: tier=1 (show only causal links)
+
+Response:
+
+json
+{
+  "nodes": [
+    {
+      "agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+      "agent_xid": "SHIPMENT EVENT TRACKER",
+      "domain_name": "SKYMFG",
+      "data_query_type_gid": "SHIPMENT",
+      "complexity_score": 102.5,
+      "link_count": 9,
+      "is_hub": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "SKYMFG.SHIPMENT EVENT TRACKER",
+      "target": "RAISE ORDER ON SHIPMENT EVENTS",
+      "link_type": "RAISES_EVENT",
+      "link_detail": "SHIPMENT STATUS - INFEASIBLE"
+    }
+  ],
+  "stats": {
+    "total_nodes": 42,
+    "total_edges": 39,
+    "hub_agents": ["SKYMFG.SHIPMENT EVENT TRACKER", "RAISE ORDER ON SHIPMENT EVENTS", ...],
+    "isolated_agents": 108
+  }
+}
+
+A node is a hub if its total link count (inbound + outbound causal) is ≥ 3.
+
+GET /api/links/impact/:agentGid
+
+Returns the full downstream impact chain — if this agent breaks, what else is affected? Traverse the causal links (Tier 1) recursively.
+
+json
+{
+  "root_agent_gid": "SKYMFG.SHIPMENT EVENT TRACKER",
+  "depth": 2,
+  "downstream": [
+    {
+      "agent_gid": "RAISE ORDER ON SHIPMENT EVENTS",
+      "agent_xid": "RAISE ORDER ON SHIPMENT EVENTS",
+      "depth": 1,
+      "via_link_type": "RAISES_EVENT",
+      "via_event": "SHIPMENT STATUS - COMPLETED"
+    }
+  ],
+  "upstream": [
+    // agents that trigger this one
+  ],
+  "total_downstream": 1,
+  "total_upstream": 0
+}
+
+Limit recursion depth to 5 to prevent infinite loops (there shouldn't be cycles, but guard anyway).
+
+React Hook: useAgentLinks(agentGid)
+
+Create a reusable React hook that fetches and caches link data for any agent:
+
+typescript
+function useAgentLinks(agentGid: string) {
+  // Returns { triggers, triggeredBy, peers, sharedSystems, counts, isLoading }
+  // Fetches from GET /api/agents/:agentGid/links
+  // Caches results so switching between workbench tabs doesn't re-fetch
+}
+React Hook: useLinkGraph(domain?, tier?)
+
+For the Agent Map:
+
+typescript
+function useLinkGraph(domain?: string, tier?: number) {
+  // Returns { nodes, edges, stats, isLoading }
+  // Fetches from GET /api/links/graph?domain=...&tier=...
+}
