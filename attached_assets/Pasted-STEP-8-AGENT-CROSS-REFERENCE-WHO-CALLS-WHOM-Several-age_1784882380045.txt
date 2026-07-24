@@ -1,0 +1,42 @@
+STEP 8 — AGENT CROSS-REFERENCE: "WHO CALLS WHOM"
+
+Several agents use RAISE INTERNAL EVENT or FOR EACH with -customEvent to trigger other agents. Parse these from agent_actions.action_params:
+
+If action_gid = 'RAISE INTERNAL EVENT', extract -internalEvent {EVENT_NAME} — this triggers other agents listening for that event.
+If action_gid = 'FOR EACH', extract -customEvent DOMAIN.EVENT_NAME — this triggers a custom agent event.
+
+Build a cross-reference lookup:
+
+sql
+-- Find all "raises" 
+SELECT agent_gid, action_params FROM agent_actions 
+WHERE action_gid IN ('RAISE INTERNAL EVENT', 'RAISE EVENT', 'FOR EACH') 
+AND action_params LIKE '%Event%';
+
+-- Match to listeners
+SELECT agent_gid, event_gid FROM agent_events 
+WHERE event_gid = '<extracted_event_name>';
+
+Display this as a "Triggers" and "Triggered By" section in the Agent Workbench.
+
+HARD STOP — DO NOT DO THESE THINGS
+❌ Do NOT invent fake agents or add agents not in the seed JSON
+❌ Do NOT rename OTM terminology (Agent, GID, XID, Data Query Type, Saved Condition, Action Flow, Event)
+❌ Do NOT simplify or truncate agent action flows — show ALL steps
+❌ Do NOT remove the DIRECT SQL actions or hide them — they are critical governance concern items
+❌ Do NOT use "workflow", "rule", "automation", or "bot" anywhere in the UI — always "Agent"
+❌ Do NOT hardcode agent data in React components — always query from the database
+❌ Do NOT create separate pages for each domain — use the global domain filter/selector pattern
+❌ Do NOT remove or overwrite any existing Catalyst screens not mentioned here
+PRE-FLIGHT CHECKLIST (Verify before marking done)
+ SELECT COUNT(*) FROM agents returns 150
+ SELECT COUNT(DISTINCT domain_name) FROM agents returns 6
+ SELECT COUNT(*) FROM agent_actions returns 1,636
+ SELECT COUNT(*) FROM agent_events returns 171
+ The Agent List page loads and shows all 150 agents
+ Filtering by domain "SKYMFG/RAIL" shows 46 agents
+ Filtering by DQT "SHIPMENT" shows 58 agents
+ Opening agent SKYMFG/RAIL.TRE-RAIL-PROCESS-ALL-ELIGIBLE-EVENTS in Workbench shows 152 normal actions (this is the most complex agent, complexity score 205.5)
+ The Dashboard shows real counts, not hardcoded numbers
+ Domain selector shows 6 domains with colored badges
+ No reference to "Northwind", "NWL", or other fictional tenants remains in the UI

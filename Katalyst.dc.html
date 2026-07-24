@@ -94,7 +94,8 @@ class Component extends DCLogic {
     annotations:{}, annotDraft:{}, annotAddOpen:{},
     skymfgDomain:null, skymfgAgentGid:null, skymfgAgentDetail:null, skymfgAgentXref:null, skymfgAgentLoading:false,
     skymfgListSearch:'', skymfgListDomains:[], skymfgListDQTs:[], skymfgListActiveOnly:false,
-    skymfgListSort:'agent_xid', skymfgListSortDir:'asc', skymfgMetaOpen:true, agentPickerOpen:null, agentPickerQuery:'' };
+    skymfgListSort:'agent_xid', skymfgListSortDir:'asc', skymfgMetaOpen:true, agentPickerOpen:null, agentPickerQuery:'',
+    wbXrefGid:null, wbXref:null, viewXrefGid:null, viewXref:null };
   // default empty collections — prevent render crashes before _loadData resolves
   agents=[]; conflicts=[]; liveEventLog=[]; audit=[]; jobs=[];
   skymfgSummary=null; skymfgDomains=[]; skymfgAgents=[]; skymfgIntegrations=[];
@@ -1469,6 +1470,38 @@ class Component extends DCLogic {
       h('div',{style:{color:SH.dim,fontWeight:600,fontSize:10,marginBottom:1}},'Northwind Logistics'),
       h('div',{style:{fontFamily:'JetBrains Mono,monospace',fontSize:9}}, 'tenant NWL · OTM 26B'));
     return h(React.Fragment,{}, logo, navWrap, foot); }
+
+  // ── Shared event cross-reference panel (used by Workbench and Agent Inspector) ──────────
+  renderXrefPanel(xref, onChipClick){ const C=this.C,h=React.createElement;
+    const trigs  = xref&&xref.triggers     ? xref.triggers     : [];
+    const trigsBy= xref&&xref.triggered_by ? xref.triggered_by : [];
+    const domColor=dn=>{const d=(this.skymfgDomains||[]).find(x=>x.domain_name===dn);return d?d.theme_color:C.teal;};
+    const rtBadge=rt=>{const isI=rt==='RAISE INTERNAL EVENT',isC=rt==='RAISE EVENT',col=isI?C.navy:isC?C.teal:C.gold,lbl=isI?'RAISE INTERNAL EVENT':isC?'RAISE EVENT':'FOR EACH';return h('span',{style:{fontSize:9,fontWeight:700,color:col,background:col+'14',borderRadius:3,padding:'1px 6px',border:'1px solid '+col+'28',fontFamily:'JetBrains Mono,monospace',flex:'none',letterSpacing:'.3px'}},lbl);};
+    const chip=(a,k)=>{const ac=domColor(a.domain_name||a.source_domain||'');return h('span',{key:k,title:a.agent_gid,onClick:()=>onChipClick(a.agent_gid),style:{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 8px',borderRadius:4,background:ac+'10',border:'1px solid '+ac+'35',cursor:'pointer',fontSize:10.5,fontWeight:600,color:ac,flex:'none'},onMouseEnter:e=>{e.currentTarget.style.background=ac+'22';},onMouseLeave:e=>{e.currentTarget.style.background=ac+'10';}},h('span',{style:{width:5,height:5,borderRadius:'50%',background:ac,flex:'none'}}),a.agent_xid||a.source_xid);};
+    if(!trigs.length&&!trigsBy.length)return h('div',{style:{padding:'14px 16px',fontSize:12,color:C.faint,fontStyle:'italic',textAlign:'center',border:'1px dashed '+C.line,borderRadius:8}},'No event-based cross-references — this agent does not raise or listen to OTM events');
+    return h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+      trigs.length?h('div',{style:{border:'1px solid '+C.navy+'35',borderRadius:8,background:C.navy+'06',borderLeft:'3px solid '+C.navy}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderBottom:'1px solid '+C.navy+'20'}},
+          h('span',{style:{fontSize:12,fontWeight:800,color:C.navy,letterSpacing:'.4px'}},'↗ Triggers'),
+          h('span',{style:{fontSize:11,color:C.faint}},'This agent raises '+trigs.length+' event'+(trigs.length!==1?'s':'')+' → '+trigs.reduce((s,t)=>s+t.targets.length,0)+' listening agent'+(trigs.reduce((s,t)=>s+t.targets.length,0)!==1?'s':''))),
+        h('div',{style:{padding:'10px 14px',display:'flex',flexDirection:'column',gap:10}},
+          ...trigs.map((t,i)=>h('div',{key:i,style:{display:'flex',alignItems:'flex-start',gap:8,flexWrap:'wrap'}},
+            rtBadge(t.raise_type),
+            h('span',{style:{fontSize:11,fontWeight:700,color:C.navy,fontFamily:'JetBrains Mono,monospace',flex:'none',alignSelf:'center'}},t.event_gid),
+            h('span',{style:{fontSize:11,color:C.faint,flex:'none',alignSelf:'center'}},'→'),
+            t.targets.length?h('div',{style:{display:'flex',flexWrap:'wrap',gap:5}},...t.targets.map((a,j)=>chip(a,j))):h('span',{style:{fontSize:11,color:C.faint,fontStyle:'italic'}},'no known listeners'))))):null,
+      trigsBy.length?h('div',{style:{border:'1px solid '+C.teal+'35',borderRadius:8,background:C.teal+'06',borderLeft:'3px solid '+C.teal}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderBottom:'1px solid '+C.teal+'20'}},
+          h('span',{style:{fontSize:12,fontWeight:800,color:C.teal,letterSpacing:'.4px'}},'↙ Triggered By'),
+          h('span',{style:{fontSize:11,color:C.faint}},trigsBy.length+' agent'+(trigsBy.length!==1?'s':'')+' raise events that invoke this agent')),
+        h('div',{style:{padding:'10px 14px',display:'flex',flexDirection:'column',gap:10}},
+          ...trigsBy.map((src,i)=>h('div',{key:i,style:{display:'flex',alignItems:'flex-start',gap:8,flexWrap:'wrap'}},
+            chip({agent_gid:src.agent_gid,agent_xid:src.agent_xid,domain_name:src.domain_name},i),
+            h('span',{style:{fontSize:11,color:C.faint,flex:'none',alignSelf:'center'}},'raises'),
+            h('div',{style:{display:'flex',flexWrap:'wrap',gap:5}},
+              ...src.events.map((ev,j)=>h('div',{key:j,style:{display:'flex',alignItems:'center',gap:4}},
+                rtBadge(ev.raise_type),
+                h('span',{style:{fontSize:10.5,fontWeight:600,color:C.text,fontFamily:'JetBrains Mono,monospace'}},ev.event_gid)))))))):null); }
 
   renderAgentCombo(ctx,value,onSelect,agents,opts){
     const C=this.C,h=React.createElement,dark=opts&&opts.dark,mw=(opts&&opts.minWidth)||240;
@@ -3963,11 +3996,20 @@ class Component extends DCLogic {
           ?h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginTop:0}},classifyCard,guardCard)
           :h('div',{style:{marginTop:0}},classifyCard||guardCard))
       :null;
+
+    // ── d) EVENT CROSS-REFERENCE ───────────────────────────────────────────────
+    if(this.state.wbXrefGid!==ag.id){setTimeout(()=>fetch('/api/agents/xref?gid='+encodeURIComponent(ag.id)).then(r=>r.json()).then(x=>this.setState({wbXref:x,wbXrefGid:ag.id})).catch(()=>this.setState({wbXref:{triggers:[],triggered_by:[]},wbXrefGid:ag.id})),0);}
+    const wbXrefCard=this.state.wbXrefGid===ag.id?this.card(
+      h(React.Fragment,{},'Event Cross-Reference ',this.mono('↗ Triggers · ↙ Triggered By',C.dim,11)),
+      this.renderXrefPanel(this.state.wbXref,gid=>this.smOpenAgent(gid)),
+      {style:{marginTop:0}}):null;
+
     return h('div',{},
       h('div',{style:{display:'flex',gap:16,flexWrap:'wrap'}}, editor, isRetender?suite:emptySuite),
       analysisRow,
       interactCard,
       isRetender?behavior:null,
+      wbXrefCard,
       isRetender?promoteBar:emptyPromoteBar); }
 
   // ---------- CONFLICTS ----------
@@ -7114,7 +7156,12 @@ class Component extends DCLogic {
     const annotNotes=(this.state.annotations||{})[a.id]||[];
     const annotBar=annotNotes.length?h('div',{style:{marginBottom:14}},
       this.card(null,this.renderAnnotationsPanel(a.id),{pad:'12px 16px'})):null;
-    return h('div',{},agHdr,annotBar,
+    // ── Event cross-reference (lazy-loaded per agent) ──────────────────────────
+    if(this.state.viewXrefGid!==a.id){setTimeout(()=>fetch('/api/agents/xref?gid='+encodeURIComponent(a.id)).then(r=>r.json()).then(x=>this.setState({viewXref:x,viewXrefGid:a.id})).catch(()=>this.setState({viewXref:{triggers:[],triggered_by:[]},viewXrefGid:a.id})),0);}
+    const viewXrefCard=this.state.viewXrefGid===a.id?h('div',{style:{marginBottom:14}},
+      this.card(h(React.Fragment,{},'Event Cross-Reference ',this.mono('↗ Triggers · ↙ Triggered By',C.dim,11)),
+        this.renderXrefPanel(this.state.viewXref,gid=>this.smOpenAgent(gid)),{pad:'12px 16px'})):null;
+    return h('div',{},agHdr,annotBar,viewXrefCard,
       h('div',{style:{display:'flex',gap:14,alignItems:'flex-start'}},
         h('div',{style:{width:330,flex:'none',display:'flex',flexDirection:'column'}},
           sumBar,

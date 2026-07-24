@@ -86,6 +86,51 @@ app.put('/api/agents/:id', async (req, res) => {
   finally { client.release(); }
 });
 
+// GET /api/agents/xref?gid=X — event cross-reference for any agent (must be before /:id)
+app.get('/api/agents/xref', async (req, res) => {
+  const gid = req.query.gid;
+  if (!gid) return res.status(400).json({ error: 'gid required' });
+  try {
+    const [triggersRows, triggeredByRows] = await Promise.all([
+      query(`SELECT DISTINCT aa.action_gid AS raise_type, ae.event_gid,
+               ae.agent_gid AS target_gid, a.agent_xid AS target_xid, a.domain_name AS target_domain
+             FROM agent_actions aa
+             JOIN agent_events ae ON (
+               (aa.action_gid = 'RAISE INTERNAL EVENT'
+                AND aa.action_params LIKE '%-internalEvent {' || ae.event_gid || '}%')
+               OR (aa.action_gid IN ('RAISE EVENT','FOR EACH')
+                AND aa.action_params LIKE '%-customEvent ' || ae.event_gid || '%')
+             )
+             JOIN agents a ON ae.agent_gid = a.agent_gid
+             WHERE aa.agent_gid = $1 AND ae.agent_gid != $1`, [gid]),
+      query(`SELECT DISTINCT ae.event_gid, aa.action_gid AS raise_type,
+               aa.agent_gid AS source_gid, a.agent_xid AS source_xid, a.domain_name AS source_domain
+             FROM agent_events ae
+             JOIN agent_actions aa ON (
+               (aa.action_gid = 'RAISE INTERNAL EVENT'
+                AND aa.action_params LIKE '%-internalEvent {' || ae.event_gid || '}%')
+               OR (aa.action_gid IN ('RAISE EVENT','FOR EACH')
+                AND aa.action_params LIKE '%-customEvent ' || ae.event_gid || '%')
+             )
+             JOIN agents a ON aa.agent_gid = a.agent_gid
+             WHERE ae.agent_gid = $1 AND aa.agent_gid != $1`, [gid]),
+    ]);
+    const byEvent = {};
+    triggersRows.forEach(r => {
+      if (!byEvent[r.event_gid]) byEvent[r.event_gid] = { event_gid: r.event_gid, raise_type: r.raise_type, targets: [] };
+      if (!byEvent[r.event_gid].targets.find(t => t.agent_gid === r.target_gid))
+        byEvent[r.event_gid].targets.push({ agent_gid: r.target_gid, agent_xid: r.target_xid, domain_name: r.target_domain });
+    });
+    const bySource = {};
+    triggeredByRows.forEach(r => {
+      if (!bySource[r.source_gid]) bySource[r.source_gid] = { agent_gid: r.source_gid, agent_xid: r.source_xid, domain_name: r.source_domain, events: [] };
+      if (!bySource[r.source_gid].events.find(e => e.event_gid === r.event_gid))
+        bySource[r.source_gid].events.push({ event_gid: r.event_gid, raise_type: r.raise_type });
+    });
+    res.json({ triggers: Object.values(byEvent), triggered_by: Object.values(bySource) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/agents/:id — single agent by GID (Bug 2 fix)
 app.get('/api/agents/:id', async (req, res) => {
   try {
