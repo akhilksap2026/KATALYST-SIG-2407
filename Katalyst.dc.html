@@ -6390,6 +6390,45 @@ class Component extends DCLogic {
 
   // ─── SKYMFG: 3A DASHBOARD ────────────────────────────────────────────────────
 
+  // ── Shared link-type legend ──────────────────────────────────────────────────
+  // types: array of link-type keys, or null/undefined for all 6
+  smLinkLegend(types){ const C=this.C,h=React.createElement;
+    const ALL={
+      RAISES_EVENT:          {color:'#DC2626',dash:null,      arrow:true,  label:'RAISES_EVENT',           desc:'Raises internal event consumed by target'},
+      FOR_EACH_DELEGATES:    {color:'#7C3AED',dash:null,      arrow:true,  label:'FOR_EACH_DELEGATES',     desc:'FOR EACH delegates via custom event'},
+      WRAPPER_DELEGATES:     {color:'#2563EB',dash:'4,2',     arrow:true,  label:'WRAPPER_DELEGATES',      desc:'Wrapper agent delegates to inner agent'},
+      STATUS_CHAIN:          {color:'#059669',dash:null,      arrow:true,  label:'STATUS_CHAIN',           desc:'Sets status that triggers target'},
+      EXECUTION_PEER:        {color:'#6B7280',dash:'1.5,2.5', arrow:false, label:'EXECUTION_PEER',         desc:'Same domain, DQT, and event'},
+      SHARED_EXTERNAL_SYSTEM:{color:'#0D9488',dash:'1.5,2.5', arrow:false, label:'SHARED_EXTERNAL_SYSTEM', desc:'Same integration endpoint'},
+    };
+    const show=(types||Object.keys(ALL)).filter(k=>ALL[k]);
+    // Split directional vs undirected for a subtle visual separator
+    const dir=show.filter(k=>ALL[k].arrow),undir=show.filter(k=>!ALL[k].arrow);
+    const item=lt=>{
+      const s=ALL[lt];
+      const lid='lleg-'+lt;
+      return h('div',{key:lt,title:s.desc,
+        style:{display:'inline-flex',alignItems:'center',gap:5,cursor:'default',padding:'1px 0'}},
+        h('svg',{width:32,height:8,style:{flex:'none',overflow:'visible'},xmlns:'http://www.w3.org/2000/svg'},
+          s.arrow?h('defs',{},h('marker',{id:lid,markerWidth:5,markerHeight:5,refX:4.5,refY:2.5,orient:'auto'},
+            h('polygon',{points:'5,2.5 0,0 0,5',fill:s.color}))):null,
+          h('line',{x1:0,y1:4,x2:s.arrow?24:32,y2:4,
+            stroke:s.color,strokeWidth:1.75,
+            strokeDasharray:s.dash||undefined,
+            markerEnd:s.arrow?'url(#'+lid+')':undefined})),
+        h('span',{style:{fontSize:8.5,fontWeight:700,color:C.dim,
+          textTransform:'uppercase',letterSpacing:'.15px',
+          fontFamily:'JetBrains Mono,monospace',whiteSpace:'nowrap'}},
+          lt.replace(/_/g,' ')));
+    };
+    return h('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',
+      padding:'5px 10px',background:C.panel2,borderRadius:5,
+      border:'1px solid '+C.border,userSelect:'none'}},
+      ...dir.map(item),
+      (dir.length&&undir.length)?h('div',{key:'sep',style:{width:1,height:12,background:C.border,flex:'none'}}):null,
+      ...undir.map(item));
+  }
+
   renderSkymfgDashboard(){ const C=this.C,h=React.createElement;
     const s=this.skymfgSummary;
     if(!s) return h('div',{style:{padding:40,textAlign:'center',color:C.faint,fontSize:13}},'Loading SkyMFG data…');
@@ -6498,9 +6537,10 @@ class Component extends DCLogic {
           {label:'External Touchpoints',value:ls.external_touchpoints, color:'#0891B2', sub:'SHARED_EXTERNAL_SYSTEM'},
         ];
         return h('div',{style:{marginTop:4}},
-          h('div',{style:{fontSize:11,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:10,display:'flex',alignItems:'center',gap:8}},
+          h('div',{style:{fontSize:11,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8,display:'flex',alignItems:'center',gap:8}},
             'Agent Dependencies',
             h('div',{style:{flex:1,height:1,background:C.border}})),
+          h('div',{style:{marginBottom:12}},this.smLinkLegend()),
           h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:14}},
             ...depCards.map((c,i)=>h('div',{key:i,style:{background:C.card,border:'1px solid '+C.border,
               borderRadius:7,padding:'12px 14px',borderTop:'3px solid '+c.color}},
@@ -6555,8 +6595,8 @@ class Component extends DCLogic {
       FOR_EACH_DELEGATES:    {color:'#7C3AED',dash:null,    label:'FOR EACH'},
       WRAPPER_DELEGATES:     {color:'#2563EB',dash:'5,3',   label:'WRAPPER'},
       STATUS_CHAIN:          {color:'#059669',dash:null,    label:'STATUS CHAIN'},
-      SHARED_EXTERNAL_SYSTEM:{color:'#0891B2',dash:'3,3',   label:'SHARED SYSTEM'},
-      EXECUTION_PEER:        {color:'#94A3B8',dash:'2,4',   label:'PEER'},
+      SHARED_EXTERNAL_SYSTEM:{color:'#0D9488',dash:'3,3',   label:'SHARED SYSTEM'},
+      EXECUTION_PEER:        {color:'#6B7280',dash:'2,4',   label:'PEER'},
     };
     const CAUSAL=['RAISES_EVENT','FOR_EACH_DELEGATES','WRAPPER_DELEGATES','STATUS_CHAIN'];
 
@@ -6617,12 +6657,7 @@ class Component extends DCLogic {
           tBtn(1,'Causal'),tBtn(2,'+ Systems'),tBtn(3,'All'))),
       this.renderSkymfgDomainBar(),
       // Legend
-      h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:8,padding:'6px 12px',
-        background:C.panel2,borderRadius:6,border:'1px solid '+C.border,flexShrink:0,flexWrap:'wrap'}},
-        ...legendTypes.map(lt=>{const s=LS[lt];
-          return h('div',{key:lt,style:{display:'flex',alignItems:'center',gap:5}},
-            h('div',{style:{width:20,height:0,borderTop:'2px '+(s.dash?'dashed':'solid')+' '+s.color}}),
-            h('span',{style:{fontSize:9,fontWeight:600,color:C.dim,textTransform:'uppercase',letterSpacing:'.3px'}},s.label));})),
+      h('div',{style:{marginBottom:8,flexShrink:0}},this.smLinkLegend(legendTypes)),
       // Graph viewport
       linkedNodes.length
         ?h('div',{style:{flex:1,overflowX:'auto',overflowY:'auto',border:'1px solid '+C.border,
@@ -7054,6 +7089,11 @@ class Component extends DCLogic {
             h('span',{style:{fontSize:13,fontWeight:800,color:C.text}},'Agent dependencies'),
             h('span',{style:{fontSize:10,fontWeight:700,color:C.faint,background:C.line,borderRadius:10,
               padding:'1px 8px',fontFamily:'JetBrains Mono,monospace'}},counts.total_links)),
+          h('div',{style:{padding:'5px 14px',borderBottom:'1px solid '+C.border,background:C.panel2}},
+            this.smLinkLegend(
+              [...new Set([...triggers,...triggered_by].map(l=>l.link_type))
+                .values(),...(peers.length?['EXECUTION_PEER']:[]),...(shared_systems.length?['SHARED_EXTERNAL_SYSTEM']:[])]
+              .filter(Boolean))),
           h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0,background:C.line}},
             h('div',{style:{background:C.panel,padding:'12px 14px'}},
               h('div',{style:{fontSize:9.5,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.6px',marginBottom:8}},
