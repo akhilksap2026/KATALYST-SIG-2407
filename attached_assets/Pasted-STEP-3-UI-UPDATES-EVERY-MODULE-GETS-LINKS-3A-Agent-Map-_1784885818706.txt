@@ -1,0 +1,125 @@
+STEP 3 — UI UPDATES: EVERY MODULE GETS LINKS
+3A. Agent Map — FROM FLAT GRID TO DEPENDENCY GRAPH
+
+This is the highest-impact change. The Agent Map currently shows agents as isolated nodes in a grid. After this change, it becomes a proper dependency graph.
+
+Layout algorithm:
+
+Fetch the graph from useLinkGraph(selectedDomain, 1) (Tier 1 = causal only)
+Separate agents into two groups:
+Connected agents: agents that appear in at least one causal edge (as source or target)
+Isolated agents: agents with zero causal links
+Render connected agents as a force-directed graph or layered tree using any lightweight library already in the project (e.g., react-flow, d3-force, dagre, elkjs) or CSS-based positioning if no graph lib exists
+Render isolated agents in a compact grid below the graph, grouped by domain
+
+For the connected graph portion:
+
+Each node is an agent card showing: XID (bold), domain badge (colored dot), DQT icon, complexity heat indicator
+Edges are drawn between connected agents:
+RAISES_EVENT → solid line, color 
+#DC2626 (red), with arrow
+FOR_EACH_DELEGATES → solid line, color 
+#7C3AED (purple), with arrow
+WRAPPER_DELEGATES → dashed line, color 
+#2563EB (blue), with arrow
+STATUS_CHAIN → solid line, color 
+#059669 (green), with arrow
+Edge labels show the event or status name (truncated to ~30 chars, full name on hover)
+Hub agents (≥3 causal links) get a slightly larger node and a thicker border
+
+Interactive behaviors:
+
+Clicking a node opens the Agent Workbench for that agent
+Hovering a node highlights all its connected edges and dims everything else
+A tier selector toggle (Tier 1 / Tier 2 / All) controls which link types show as edges
+The existing domain filter continues to work — when a domain is selected, only agents in that domain (plus their cross-domain targets) show in the graph
+
+For the isolated agents section:
+
+Subtitle: "Agents without causal dependencies (108)"
+Compact grid, same node style but smaller, grouped by domain
+These agents still operate (they respond to their own events) but don't chain to other agents
+
+The graph's key visual insight: When viewing SKYMFG or "All Domains", the user should immediately see the SHIPMENT EVENT TRACKER → RAISE ORDER ON SHIPMENT EVENTS hub pattern — four copies of the Event Tracker (SKYMFG, SKYMFG/DEMO V2, SKYMFG/LW, SKYMFG/TRAINING) all feeding into the single PUBLIC domain RAISE ORDER ON SHIPMENT EVENTS agent. This is the backbone of the OTM shipment-to-order event bridge.
+
+3B. Agent Workbench — RELATIONSHIP PANEL
+
+Add a new collapsible section to the Agent Workbench detail view, positioned between the Event Triggers section and the Action Flow section.
+
+Section title: "Agent dependencies" with a count badge showing total link count.
+
+Layout: Two columns (or tabbed on mobile):
+
+Left column: "Triggers" (outbound causal links) Header: "This agent triggers →"
+
+For each outbound causal link, show a card:
+
+→ RAISE ORDER ON SHIPMENT EVENTS          [PUBLIC]
+  via RAISES_EVENT: SHIPMENT STATUS - COMPLETED
+  DQT: SHIPMENT
+
+If no outbound links: "This agent does not trigger other agents"
+
+Right column: "Triggered by" (inbound causal links) Header: "← Triggered by"
+
+For each inbound causal link, show a card:
+
+← SKYMFG/TRAINING.ORDER_RELEASE_MODIFIED  [SKYMFG/TRAINING]
+  via FOR_EACH_DELEGATES: SKYMFG/TRAINING.RERATE_REDRIVER
+  DQT: ORDER RELEASE
+
+If no inbound links: "No other agents trigger this agent directly"
+
+Below both columns: contextual links (collapsed by default)
+
+An expandable "Related agents" accordion containing:
+
+Execution peers: "Agents listening on the same event" — list with count
+Shared external systems: "Agents integrating with the same external system" — list grouped by external system name
+Each item is clickable → navigates to that agent's Workbench
+
+Clicking any agent name in the dependency panel navigates to that agent's Workbench. This creates the ability to "walk the chain" — click through from one agent to the next, following the dependency path.
+
+3C. Agent List — LINK COUNT COLUMNS
+
+Add two new columns to the Agent List data table:
+
+Column	Source	Sortable	Filterable
+Triggers	Count of outbound causal links	Yes	Range
+Triggered By	Count of inbound causal links	Yes	Range
+
+These counts come from:
+
+sql
+-- Outbound count per agent
+SELECT source_agent_gid, COUNT(*) as trigger_count
+FROM agent_links
+WHERE direction = 'DIRECTIONAL'
+GROUP BY source_agent_gid;
+
+-- Inbound count per agent
+SELECT target_agent_gid, COUNT(*) as triggered_by_count
+FROM agent_links
+WHERE direction = 'DIRECTIONAL'
+GROUP BY target_agent_gid;
+
+Also add a filter toggle: "Show only linked agents" — when enabled, hides agents with zero causal links (showing ~42 agents instead of 150). This instantly focuses the list on the agents that participate in chains.
+
+3D. Dashboard — DEPENDENCY SUMMARY CARDS
+
+Add a new section or row to the Dashboard: "Agent dependencies"
+
+Summary cards:
+
+Card Label	Value	Source
+Causal links	39	SELECT COUNT(*) FROM agent_links WHERE direction = 'DIRECTIONAL'
+Hub agents (≥3 links)	(computed)	Agents with ≥3 total causal links
+Isolated agents	108	Agents with 0 causal links
+Cross-domain links	(computed)	Causal links where source and target are in different domains
+External system touchpoints	7	SELECT COUNT(DISTINCT link_detail) FROM agent_links WHERE link_type = 'SHARED_EXTERNAL_SYSTEM'
+
+Optionally: A small preview of the top hub agents as a mini-graph or ranked list:
+
+RAISE ORDER ON SHIPMENT EVENTS — 28 inbound
+SHIPMENT EVENT TRACKER (×4 domains) — 7 outbound each
+LW_ORDER_RELEASE_MODIFIED_V001 — 4 outbound (status chains)

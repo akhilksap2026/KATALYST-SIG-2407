@@ -212,6 +212,233 @@ app.delete('/api/agents/:id/draft', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── AGENT LINKS ─────────────────────────────────────────────────────────────
+
+// GET /api/agents/:agentGid/links — all links for an agent (out, in, undirected)
+// NOTE: /:agentGid/links is 2-segment — safe after /:id; kept here for legibility
+app.get('/api/agents/:agentGid/links', async (req, res) => {
+  const { agentGid } = req.params;
+  try {
+    const [outRows, inRows, undirRows] = await Promise.all([
+      // Outbound directional (this agent triggers others)
+      query(`SELECT al.link_type, al.link_detail,
+               al.target_agent_gid AS peer_gid,
+               a.agent_xid AS peer_xid, a.domain_name AS peer_domain,
+               a.data_query_type_gid AS peer_dqt
+             FROM agent_links al
+             JOIN agents a ON a.agent_gid = al.target_agent_gid
+             WHERE al.source_agent_gid = $1 AND al.direction = 'DIRECTIONAL'
+             ORDER BY al.link_type, al.link_detail`, [agentGid]),
+      // Inbound directional (others trigger this agent)
+      query(`SELECT al.link_type, al.link_detail,
+               al.source_agent_gid AS peer_gid,
+               a.agent_xid AS peer_xid, a.domain_name AS peer_domain,
+               a.data_query_type_gid AS peer_dqt
+             FROM agent_links al
+             JOIN agents a ON a.agent_gid = al.source_agent_gid
+             WHERE al.target_agent_gid = $1 AND al.direction = 'DIRECTIONAL'
+             ORDER BY al.link_type, al.link_detail`, [agentGid]),
+      // Undirected — resolve the "other" agent regardless of which side this agent is on
+      query(`SELECT al.link_type, al.link_detail,
+               CASE WHEN al.source_agent_gid = $1 THEN al.target_agent_gid
+                    ELSE al.source_agent_gid END AS peer_gid,
+               a.agent_xid AS peer_xid, a.domain_name AS peer_domain,
+               a.data_query_type_gid AS peer_dqt
+             FROM agent_links al
+             JOIN agents a ON a.agent_gid = CASE
+               WHEN al.source_agent_gid = $1 THEN al.target_agent_gid
+               ELSE al.source_agent_gid END
+             WHERE (al.source_agent_gid = $1 OR al.target_agent_gid = $1)
+               AND al.direction = 'UNDIRECTED'
+             ORDER BY al.link_type, al.link_detail`, [agentGid]),
+    ]);
+
+    const triggers = outRows.map(r => ({
+      link_type: r.link_type, link_detail: r.link_detail,
+      target_agent_gid: r.peer_gid, target_agent_xid: r.peer_xid,
+      target_domain: r.peer_domain, target_data_query_type: r.peer_dqt,
+    }));
+    const triggeredBy = inRows.map(r => ({
+      link_type: r.link_type, link_detail: r.link_detail,
+      source_agent_gid: r.peer_gid, source_agent_xid: r.peer_xid,
+      source_domain: r.peer_domain, source_data_query_type: r.peer_dqt,
+    }));
+    const peers = undirRows.filter(r => r.link_type === 'EXECUTION_PEER').map(r => ({
+      link_type: r.link_type, link_detail: r.link_detail,
+      peer_agent_gid: r.peer_gid, peer_agent_xid: r.peer_xid, peer_domain: r.peer_domain,
+    }));
+    const sharedSystems = undirRows.filter(r => r.link_type === 'SHARED_EXTERNAL_SYSTEM').map(r => ({
+      link_type: r.link_type, link_detail: r.link_detail,
+      peer_agent_gid: r.peer_gid, peer_agent_xid: r.peer_xid, peer_domain: r.peer_domain,
+    }));
+
+    res.json({
+      agent_gid: agentGid, triggers, triggered_by: triggeredBy,
+      peers, shared_systems: sharedSystems,
+      counts: {
+        triggers: triggers.length, triggered_by: triggeredBy.length,
+        peers: peers.length, shared_systems: sharedSystems.length,
+        total_links: triggers.length + triggeredBy.length + peers.length + sharedSystems.length,
+      },
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/links/graph?domain=...&tier=1 — full link graph for map visualization
+app.get('/api/links/graph', async (req, res) => {
+  const { domain } = req.query;
+  const tier = parseInt(req.query.tier, 10) || 1;
+  const causal = ['RAISES_EVENT','FOR_EACH_DELEGATES','WRAPPER_DELEGATES','STATUS_CHAIN'];
+  const allowed = tier >= 3
+    ? [...causal, 'SHARED_EXTERNAL_SYSTEM', 'EXECUTION_PEER']
+    : tier >= 2 ? [...causal, 'SHARED_EXTERNAL_SYSTEM'] : causal;
+  try {
+    const params = [allowed];
+    let domainFilter = '';
+    if (domain) { params.push(domain); domainFilter = `AND (sa.domain_name = $2 OR ta.domain_name = $2)`; }
+
+    const edgeRows = await query(
+      `SELECT al.source_agent_gid AS source, al.target_agent_gid AS target,
+              al.link_type, al.link_detail, al.direction
+       FROM agent_links al
+       JOIN agents sa ON sa.agent_gid = al.source_agent_gid
+       JOIN agents ta ON ta.agent_gid = al.target_agent_gid
+       WHERE al.link_type = ANY($1) ${domainFilter}
+       ORDER BY al.link_type, al.source_agent_gid`, params);
+
+    // Collect unique agent GIDs touched by these edges
+    const agentGidSet = new Set();
+    edgeRows.forEach(r => { agentGidSet.add(r.source); agentGidSet.add(r.target); });
+    const agentGids = [...agentGidSet];
+
+    // Hub detection: count causal inbound + outbound per agent
+    const linkCount = {};
+    edgeRows.filter(r => causal.includes(r.link_type)).forEach(r => {
+      linkCount[r.source] = (linkCount[r.source]||0) + 1;
+      linkCount[r.target] = (linkCount[r.target]||0) + 1;
+    });
+
+    const nodeRows = agentGids.length ? await query(
+      `SELECT agent_gid, agent_xid, domain_name, data_query_type_gid,
+              complexity_score, is_active
+       FROM agents WHERE agent_gid = ANY($1)`, [agentGids]) : [];
+
+    const nodes = nodeRows.map(a => ({
+      agent_gid: a.agent_gid, agent_xid: a.agent_xid,
+      domain_name: a.domain_name, data_query_type_gid: a.data_query_type_gid,
+      complexity_score: a.complexity_score ? parseFloat(a.complexity_score) : null,
+      is_active: a.is_active,
+      link_count: linkCount[a.agent_gid]||0,
+      is_hub: (linkCount[a.agent_gid]||0) >= 3,
+    }));
+    const edges = edgeRows.map(r => ({
+      source: r.source, target: r.target,
+      link_type: r.link_type, link_detail: r.link_detail, direction: r.direction,
+    }));
+    const hubAgents = nodes.filter(n => n.is_hub).map(n => n.agent_gid);
+    const totalRow = await query('SELECT COUNT(*)::int AS cnt FROM agents');
+    const totalAgents = totalRow[0]?.cnt || 0;
+
+    res.json({ nodes, edges, stats: {
+      total_nodes: nodes.length, total_edges: edges.length,
+      hub_agents: hubAgents, isolated_agents: totalAgents - nodes.length,
+    }});
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/links/impact/:agentGid — recursive downstream + upstream impact chain (max depth 5)
+app.get('/api/links/impact/:agentGid', async (req, res) => {
+  const { agentGid } = req.params;
+  const MAX_DEPTH = 5;
+  const CAUSAL = ['RAISES_EVENT','FOR_EACH_DELEGATES','WRAPPER_DELEGATES','STATUS_CHAIN'];
+  try {
+    const allLinks = await query(
+      `SELECT source_agent_gid AS src, target_agent_gid AS tgt,
+              link_type, link_detail
+       FROM agent_links
+       WHERE link_type = ANY($1) AND direction = 'DIRECTIONAL'`, [CAUSAL]);
+
+    // BFS helper
+    const bfs = (startId, follow) => {
+      const result = [];
+      const visited = new Set([startId]);
+      let frontier = [{ id: startId, depth: 0 }];
+      while (frontier.length) {
+        const next = [];
+        for (const { id, depth } of frontier) {
+          if (depth >= MAX_DEPTH) continue;
+          for (const lk of allLinks.filter(l => follow(l, id))) {
+            const peerId = follow === ((l,i)=>l.src===i) ? lk.tgt : lk.src;
+            const nextId = lk.src === id ? lk.tgt : lk.src;
+            if (!visited.has(nextId)) {
+              visited.add(nextId);
+              result.push({ agent_gid: nextId, depth: depth+1,
+                via_link_type: lk.link_type, via_event: lk.link_detail });
+              next.push({ id: nextId, depth: depth+1 });
+            }
+          }
+        }
+        frontier = next;
+      }
+      return result;
+    };
+
+    // Downstream: follow outbound edges (src === current node)
+    const downstream = [];
+    const visitedDown = new Set([agentGid]);
+    let frontier = [{ id: agentGid, depth: 0 }];
+    while (frontier.length) {
+      const next = [];
+      for (const { id, depth } of frontier) {
+        if (depth >= MAX_DEPTH) continue;
+        for (const lk of allLinks.filter(l => l.src === id)) {
+          if (!visitedDown.has(lk.tgt)) {
+            visitedDown.add(lk.tgt);
+            downstream.push({ agent_gid: lk.tgt, depth: depth+1,
+              via_link_type: lk.link_type, via_event: lk.link_detail });
+            next.push({ id: lk.tgt, depth: depth+1 });
+          }
+        }
+      }
+      frontier = next;
+    }
+
+    // Upstream: follow inbound edges (tgt === current node)
+    const upstream = [];
+    const visitedUp = new Set([agentGid]);
+    frontier = [{ id: agentGid, depth: 0 }];
+    while (frontier.length) {
+      const next = [];
+      for (const { id, depth } of frontier) {
+        if (depth >= MAX_DEPTH) continue;
+        for (const lk of allLinks.filter(l => l.tgt === id)) {
+          if (!visitedUp.has(lk.src)) {
+            visitedUp.add(lk.src);
+            upstream.push({ agent_gid: lk.src, depth: depth+1,
+              via_link_type: lk.link_type, via_event: lk.link_detail });
+            next.push({ id: lk.src, depth: depth+1 });
+          }
+        }
+      }
+      frontier = next;
+    }
+
+    // Enrich with agent_xid
+    const allGids = [...new Set([...downstream.map(d=>d.agent_gid), ...upstream.map(u=>u.agent_gid)])];
+    if (allGids.length) {
+      const nr = await query(`SELECT agent_gid, agent_xid FROM agents WHERE agent_gid = ANY($1)`, [allGids]);
+      const nameMap = Object.fromEntries(nr.map(r => [r.agent_gid, r.agent_xid]));
+      downstream.forEach(d => { d.agent_xid = nameMap[d.agent_gid] || d.agent_gid; });
+      upstream.forEach(u => { u.agent_xid = nameMap[u.agent_gid] || u.agent_gid; });
+    }
+
+    const maxDepth = downstream.length ? Math.max(...downstream.map(d=>d.depth)) : 0;
+    res.json({ root_agent_gid: agentGid, depth: maxDepth,
+      downstream, upstream,
+      total_downstream: downstream.length, total_upstream: upstream.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── ANNOTATIONS / TRIBAL KNOWLEDGE ──────────────────────────────────────────
 
 // Bulk: all annotations (grouped by agent for startup load); supports ?tag= and ?q=

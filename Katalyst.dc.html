@@ -781,6 +781,64 @@ class Component extends DCLogic {
   }
   _retryLoad(){ this.setState({_apiError:false,_apiLoaded:false},()=>this._loadData()); }
 
+  // ── Link data helpers (equivalent to useAgentLinks / useLinkGraph hooks) ────
+  // Per-agent link cache: keyed by agent GID. Values: { data, ts } | 'loading'
+  // Per-graph cache: keyed by `${domain||'*'}:${tier}`. Values: { data, ts }
+  _linkCacheAgent = {};
+  _linkCacheGraph  = {};
+  static _LINK_TTL = 120_000; // 2 min
+
+  // useAgentLinks(agentGid) — fetches GET /api/agents/:agentGid/links with cache
+  // Returns a promise that resolves to { triggers, triggered_by, peers, shared_systems, counts }
+  async _fetchAgentLinks(agentGid) {
+    if (!agentGid) return null;
+    const cached = this._linkCacheAgent[agentGid];
+    if (cached && Date.now() - cached.ts < KatalystApp._LINK_TTL) return cached.data;
+    // Prevent concurrent double-fetches for the same agent
+    if (cached === 'loading') {
+      return new Promise(res => setTimeout(() => res(this._fetchAgentLinks(agentGid)), 80));
+    }
+    this._linkCacheAgent[agentGid] = 'loading';
+    try {
+      const data = await fetch(`/api/agents/${encodeURIComponent(agentGid)}/links`).then(r => r.json());
+      this._linkCacheAgent[agentGid] = { data, ts: Date.now() };
+      return data;
+    } catch (e) {
+      delete this._linkCacheAgent[agentGid];
+      console.warn('[links] fetchAgentLinks failed for', agentGid, e.message);
+      return null;
+    }
+  }
+
+  // useLinkGraph(domain?, tier?) — fetches GET /api/links/graph with cache
+  // Returns a promise that resolves to { nodes, edges, stats }
+  async _fetchLinkGraph(domain, tier = 1) {
+    const key = `${domain||'*'}:${tier}`;
+    const cached = this._linkCacheGraph[key];
+    if (cached && Date.now() - cached.ts < KatalystApp._LINK_TTL) return cached.data;
+    if (cached === 'loading') {
+      return new Promise(res => setTimeout(() => res(this._fetchLinkGraph(domain, tier)), 80));
+    }
+    this._linkCacheGraph[key] = 'loading';
+    try {
+      const qs = new URLSearchParams({ tier });
+      if (domain) qs.set('domain', domain);
+      const data = await fetch(`/api/links/graph?${qs}`).then(r => r.json());
+      this._linkCacheGraph[key] = { data, ts: Date.now() };
+      return data;
+    } catch (e) {
+      delete this._linkCacheGraph[key];
+      console.warn('[links] fetchLinkGraph failed', e.message);
+      return null;
+    }
+  }
+
+  // Invalidate link cache for a specific agent (call after agent edits)
+  _invalidateLinkCache(agentGid) {
+    if (agentGid) delete this._linkCacheAgent[agentGid];
+    this._linkCacheGraph = {}; // graph may reference this agent
+  }
+
   async _persistConflictStatus(id, status){
     try { await fetch('/api/conflicts/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,acknowledged_by:'admin'})}); } catch(e){ console.error(e); }
   }
