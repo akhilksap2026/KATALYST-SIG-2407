@@ -50,8 +50,14 @@ app.get('/api/agents', async (req, res) => {
     res.json(agentRows.map(a => ({
       id: a.agent_gid, name: a.agent_xid, domain: a.domain_name, type: a.data_query_type_gid,
       version: a.version, owner: a.owner, trigger: a.trigger_name,
-      evt: a.evt, priority: a.priority, success: parseFloat(a.success_rate),
+      evt: a.evt, priority: a.priority, success: parseFloat(a.success_rate)||0,
       health: a.health, gx: a.gx, gy: a.gy,
+      // SkyMFG-specific properties (null for NWL agents)
+      is_active: a.is_active, complexity_score: a.complexity_score,
+      otm_release: a.otm_release, norm_action_count: a.norm_action_count,
+      err_action_count: a.err_action_count, event_count: a.event_count,
+      reentrancy_level: a.reentrancy_level, run_as_type: a.run_as_type,
+      functional_categories: a.functional_categories,
       conditions: condRows.filter(r => r.agent_id === a.agent_gid).map(r => r.condition_text),
       actions:    actRows .filter(r => r.agent_gid === a.agent_gid).map(r => r.action_gid),
       reads:      readRows.filter(r => r.agent_id === a.agent_gid).map(r => r.field_name),
@@ -128,6 +134,26 @@ app.get('/api/agents/xref', async (req, res) => {
         bySource[r.source_gid].events.push({ event_gid: r.event_gid, raise_type: r.raise_type });
     });
     res.json({ triggers: Object.values(byEvent), triggered_by: Object.values(bySource) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/agents/event-edges — bulk OTM event connections between agents (must be before /:id)
+app.get('/api/agents/event-edges', async (req, res) => {
+  try {
+    const rows = await query(`
+      SELECT DISTINCT aa.agent_gid AS from_id, ae.agent_gid AS to_id,
+        ae.event_gid, aa.action_gid AS raise_type
+      FROM agent_actions aa
+      JOIN agent_events ae ON (
+        (aa.action_gid = 'RAISE INTERNAL EVENT'
+          AND aa.action_params LIKE '%-internalEvent {' || ae.event_gid || '}%')
+        OR (aa.action_gid IN ('RAISE EVENT','FOR EACH')
+          AND aa.action_params LIKE '%-customEvent ' || ae.event_gid || '%')
+      )
+      WHERE aa.agent_gid != ae.agent_gid
+      ORDER BY aa.agent_gid, ae.agent_gid
+    `);
+    res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

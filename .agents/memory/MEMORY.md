@@ -12,3 +12,4 @@
 - [SkyMFG UI screens](skymfg-ui.md) — Step 3 complete: 4 screens (Overview/Map/List/Workbench) + 4 API routes; post-migration column rename fixes documented.
 - [E2E test findings](e2e-findings.md) — enrich.js column names fixed; SkyMFG seed added to api.js autoSeedSkymfgIfEmpty(); all 15 endpoints and 12 screens verified.
 - [Agent xref cross-reference](agent-xref.md) — Step 8: GET /api/agents/xref?gid=X (must precede /:id route); renderXrefPanel shared method; lazy-loaded in workbench + agent-view.
+- [SkyMFG map wiring](skymfg-map-wiring.md) — Step 9: event-edges endpoint (53 rows); domainColor extended; OTM event edges on map (orange dashed); domain labels; SkyMFG hover bubble + click panel; blast-BFS includes eventEdges.

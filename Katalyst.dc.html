@@ -710,7 +710,7 @@ class Component extends DCLogic {
 
   async _loadData(){
     try {
-      const [agentsRes,edgesRes,conflictsRes,auditRes,jobsRes,eventsRes,diffsRes,tracesRes,testsRes,annotRes,smSummaryRes,smDomainsRes,smAgentsRes,smIntegrationsRes] = await Promise.all([
+      const [agentsRes,edgesRes,conflictsRes,auditRes,jobsRes,eventsRes,diffsRes,tracesRes,testsRes,annotRes,smSummaryRes,smDomainsRes,smAgentsRes,smIntegrationsRes,evtEdgesRes] = await Promise.all([
         fetch('/api/agents').then(r=>r.json()),
         fetch('/api/workflow-edges').then(r=>r.json()),
         fetch('/api/conflicts').then(r=>r.json()),
@@ -725,10 +725,13 @@ class Component extends DCLogic {
         fetch('/api/skymfg/domains').then(r=>r.json()).catch(()=>[]),
         fetch('/api/skymfg/agents').then(r=>r.json()).catch(()=>[]),
         fetch('/api/skymfg/integrations').then(r=>r.json()).catch(()=>[]),
+        fetch('/api/agents/event-edges').then(r=>r.json()).catch(()=>[]),
       ]);
       // agents
-      this.agents = agentsRes.map(a=>({...a, success:parseFloat(a.success), conditions:a.conditions||[], actions:a.actions||[], reads:a.reads||[], writes:a.writes||[]}));
+      this.agents = agentsRes.map(a=>({...a, success:parseFloat(a.success)||0, conditions:a.conditions||[], actions:a.actions||[], reads:a.reads||[], writes:a.writes||[]}));
       this.nwlAgents = this.agents.filter(a=>!a.domain||!a.domain.startsWith('SKYMFG'));
+      // OTM event-based cross-agent connections (SkyMFG RAISE INTERNAL EVENT / RAISE EVENT)
+      this.eventEdges = Array.isArray(evtEdgesRes)?evtEdgesRes.filter(e=>e.from_id&&e.to_id):[];
       // workflow edges
       this.flowEdges = edgesRes.filter(e=>e.edge_type==='flow').map(e=>[e.from_agent,e.to_agent]);
       this.aiEdges   = edgesRes.filter(e=>e.edge_type==='ai').map(e=>[e.from_agent,e.to_agent]);
@@ -1374,7 +1377,13 @@ class Component extends DCLogic {
       applyFixBtn,
       this.btn('Open in Agent Editor',{onClick:()=>this.chooseAgent(b.id,{screen:'workbench'})})); }
   typeColor(t){ const C=this.C; return ({Tender:C.navy,Rating:C.teal,Compliance:C.gold,Document:'#7E8CA8',Invoice:'#A05EAF',AI:C.purple,Tracking:'#3B82C4'})[t]||C.dim; }
-  domainColor(d){ const C=this.C; return ({'Order Release':C.teal,'Shipment Execution':C.navy,'Oracle AI':C.purple,'Invoice & Finance':'#A05EAF','Compliance':C.gold,'Document Management':'#7E8CA8'})[d]||C.dim; }
+  domainColor(d){ const C=this.C;
+    if(d&&d.startsWith('SKYMFG/RAIL')) return '#C07B0A';
+    if(d&&d.startsWith('SKYMFG/LW')) return '#1e56e0';
+    if(d&&d.startsWith('SKYMFG/TRAIN')) return '#1A8C5C';
+    if(d&&d.startsWith('SKYMFG/DEMO')) return '#9B59B6';
+    if(d&&d.startsWith('SKYMFG')) return '#E67E22';
+    return ({'Order Release':C.teal,'Shipment Execution':C.navy,'Oracle AI':C.purple,'Invoice & Finance':'#A05EAF','Compliance':C.gold,'Document Management':'#7E8CA8'})[d]||C.dim; }
   healthColor(h){ const C=this.C; return ({green:'#1A8C5C',amber:'#C07B0A',red:'#C74634'})[h]; }
   healthLabel(h){ return ({green:'Healthy',amber:'Degraded',red:'Failing'})[h]; }
 
@@ -2033,6 +2042,7 @@ class Component extends DCLogic {
       h('span',{style:{color:C.teal}},this.flowEdges.length+' event edges'),
       h('span',{style:{color:C.purple}},this.aiEdges.length+' AI edges'),
       h('span',{style:{color:'#6B7A99'}},foCount+' field-only edges'),
+      (this.eventEdges||[]).length?h('span',{style:{color:'#E67E22'}},(this.eventEdges||[]).length+' OTM evt edges'):null,
       this.conflicts.length?h('span',{style:{color:C.red}},this.conflicts.length+' conflicts'):null);
 
     const toolbar=h('div',{style:{display:'flex',flexDirection:'column',gap:9,marginBottom:10}},
@@ -2060,6 +2070,7 @@ class Component extends DCLogic {
       legItem({width:20,height:0,borderTop:'2px dashed #6B7A99'},' Field dependency'),
       legItem({width:20,height:0,borderTop:'2px dashed '+C.red},' Critical conflict'),
       legItem({width:20,height:0,borderTop:'2px dashed '+C.amber},' Warning'),
+      legItem({width:20,height:0,borderTop:'2px dashed #E67E22'},' OTM event'),
       edgeMode!=='event'?h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,fontSize:10,
         color:'#6B7A99',fontFamily:'JetBrains Mono,monospace',background:'#6B7A9910',
         border:'1px solid #6B7A9930',borderRadius:4,padding:'1px 8px'}},
@@ -2098,7 +2109,8 @@ class Component extends DCLogic {
     const allEdges=[
       ...this.flowEdges.map(e=>({from:e[0],to:e[1]})),
       ...this.aiEdges.map(e=>({from:e[0],to:e[1]})),
-      ...this._fieldEdgesCache.map(e=>({from:e.from,to:e.to}))
+      ...this._fieldEdgesCache.map(e=>({from:e.from,to:e.to})),
+      ...(this.eventEdges||[]).map(e=>({from:e.from_id,to:e.to_id}))
     ];
     const dist={[focusId]:0};
     // Forward BFS: consumers (+1, +2)
@@ -2139,17 +2151,21 @@ class Component extends DCLogic {
     const pos={};
     const row0Doms=domains.slice(0,DOMS_PER_ROW);
     const row0MaxH=Math.max(0,...row0Doms.map(d=>Math.ceil((byDomain[d]||[]).length/COLS)*RU));
+    const headers=[];
     [row0Doms,domains.slice(DOMS_PER_ROW)].forEach((rowDoms,ri)=>{
       const rowY=START_Y+(ri===0?0:row0MaxH+DG);
       let curX=START_X;
       rowDoms.forEach(d=>{
-        (byDomain[d]||[]).forEach((a,i)=>{
+        const dAgents=byDomain[d]||[];
+        headers.push({domain:d,x:curX,y:rowY-32,blockW:COLS*CU-24,count:dAgents.length});
+        dAgents.forEach((a,i)=>{
           pos[a.id]={x:curX+(i%COLS)*CU,y:rowY+Math.floor(i/COLS)*RU};
         });
         curX+=COLS*CU+DG;
       });
     });
     this._autoLayoutPos=pos;
+    this._autoLayoutHeaders=headers;
   }
 
   _wfComputeFit(){
@@ -2236,8 +2252,8 @@ class Component extends DCLogic {
 
     // ── defs (add slate marker for field-only edges) ───────────────────────
     const defs=h('defs',{key:'d'},
-      ['teal','red','amber','purple','slate'].map(k=>{
-        const col=k==='teal'?C.teal:k==='red'?C.red:k==='amber'?C.amber:k==='slate'?'#6B7A99':C.purple;
+      ['teal','red','amber','purple','slate','orange'].map(k=>{
+        const col=k==='teal'?C.teal:k==='red'?C.red:k==='amber'?C.amber:k==='slate'?'#6B7A99':k==='orange'?'#E67E22':C.purple;
         return h('marker',{key:k,id:'arr-'+k,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'},
           h('path',{d:'M0 0L10 5L0 10z',fill:col})); }),
       h('pattern',{key:'grid',id:'cat-grid',width:28,height:28,patternUnits:'userSpaceOnUse'},
@@ -2346,6 +2362,34 @@ class Component extends DCLogic {
         h('text',{x:0,y:line2?-3:4.5,textAnchor:'middle',fontSize:7.5,fontFamily:'JetBrains Mono,monospace',fill:'#6B7A99',fontWeight:700},line1),
         line2?h('text',{x:0,y:10,textAnchor:'middle',fontSize:7.5,fontFamily:'JetBrains Mono,monospace',fill:'#6B7A99',fontWeight:700},line2):null); })
     :[];
+
+    // ── OTM event edges (RAISE INTERNAL EVENT / RAISE EVENT between agents) ──
+    const smEventEls=showEvent?(this.eventEdges||[]).map((e,i)=>{
+      const a=this.byId(e.from_id),b=this.byId(e.to_id);if(!a||!b)return null;
+      const p=ep(a,b,-28);
+      return h('path',{key:'sme'+i,d:p.d,fill:'none',stroke:'#E67E22',strokeWidth:1.5,
+        strokeDasharray:'6 4',strokeLinecap:'round',opacity:eOp(a,b,.7),
+        markerEnd:'url(#arr-orange)'}); }).filter(Boolean):[];
+    const smEventLabels=showEvent?(this.eventEdges||[]).map((e,i)=>{
+      const a=this.byId(e.from_id),b=this.byId(e.to_id);
+      if(!a||!b||!eVis(a,b))return null;
+      const p=ep(a,b,-28);
+      const lbl=((e.event_gid||'').split('.').pop()||'').replace(/_/g,' ');
+      const lt=lbl.length>14?lbl.slice(0,13)+'…':lbl;
+      return h('g',{key:'smEl'+i,transform:'translate('+p.mid[0]+','+p.mid[1]+')'},
+        h('rect',{x:-28,y:-9,width:56,height:17,rx:8.5,fill:'#FFFFFF',stroke:'#E67E22',strokeWidth:1,strokeOpacity:.5}),
+        h('text',{x:0,y:4.5,textAnchor:'middle',fontSize:7,fontFamily:'JetBrains Mono,monospace',fill:'#E67E22',fontWeight:700},lt));
+    }).filter(Boolean):[];
+
+    // ── Domain group labels (SkyMFG auto-layout area) ─────────────────────
+    const domLabels=(this._autoLayoutHeaders||[]).map((hdr,i)=>{
+      const col=this.domainColor(hdr.domain);
+      const lbl=(hdr.domain.replace('SKYMFG/','').replace('SKYMFG','OTM BASE'))+' · '+hdr.count+' agents';
+      return h('g',{key:'dlbl'+i},
+        h('rect',{x:hdr.x-6,y:hdr.y-2,width:hdr.blockW+12,height:22,rx:5,fill:col+'14',stroke:col+'35',strokeWidth:1}),
+        h('text',{x:hdr.x+(hdr.blockW/2),y:hdr.y+13,textAnchor:'middle',fontSize:9,fontWeight:800,
+          fontFamily:'JetBrains Mono,monospace',fill:col,letterSpacing:'0.7px'},lbl));
+    });
 
     // ── conflict overlays ─────────────────────────────────────────────────
     let conflictEls=[];
@@ -2457,11 +2501,14 @@ class Component extends DCLogic {
       h('rect',{width:'100%',height:'100%',fill:'url(#cat-grid)'}),
       h('g',{transform:'translate('+panX+','+panY+') scale('+zoom+')'},
         colOverlay,
+        h('g',{},domLabels),
         h('g',{},swimlanes),
         h('g',{},showEvent?flow.filter(Boolean):[]),
         h('g',{},showEvent?flowLabels.filter(Boolean):[]),
         h('g',{},showEvent?aiflow.filter(Boolean):[]),
         h('g',{},showEvent?aiflowLabels.filter(Boolean):[]),
+        h('g',{},smEventEls),
+        h('g',{},smEventLabels),
         h('g',{},showField?fieldOnlyEls.filter(Boolean):[]),
         h('g',{},showField?fieldOnlyLabels.filter(Boolean):[]),
         h('g',{},conflictEls),
@@ -2477,6 +2524,50 @@ class Component extends DCLogic {
   truncate(s,n){ return s.length>n? s.slice(0,n-1)+'…' : s; }
 
   renderHoverBubble(a){ const C=this.C,h=React.createElement;
+    // ── SkyMFG agents: domain-aware property bubble ───────────────────────
+    if(a.domain?.startsWith('SKYMFG')){
+      const ap=this._autoLayoutPos?.[a.id]||{x:a.gx,y:a.gy};
+      const col=this.domainColor(a.domain);
+      const bW=265;
+      const tx=(x,yt,text,cl,sz)=>h('text',{x,y:yt,fontSize:sz||9.5,fill:cl||C.dim,fontFamily:'JetBrains Mono,monospace'},text);
+      const lbl=(x,yt,text)=>h('text',{x,y:yt,fontSize:8,fill:C.faint,fontFamily:'Inter,sans-serif',fontWeight:700},text);
+      const rows=[]; let y=4;
+      rows.push(h('text',{x:bW/2,y:y+13,textAnchor:'middle',fontSize:11,fontWeight:700,fontFamily:'Inter,sans-serif',fill:C.text},this.truncate(a.name,28))); y+=22;
+      rows.push(tx(12,y,(a.domain||'').replace('SKYMFG/','SKYMFG › '),col,8)); y+=14;
+      // stat row
+      const stats=[];
+      if(a.complexity_score!=null) stats.push('Complexity: '+a.complexity_score);
+      if(a.norm_action_count!=null) stats.push(a.norm_action_count+' NORMAL');
+      if(a.err_action_count!=null) stats.push(a.err_action_count+' ERR');
+      if(a.event_count!=null) stats.push(a.event_count+' evt');
+      if(stats.length){ rows.push(tx(12,y,stats.join(' · '),C.dim,8.5)); y+=13; }
+      const isAct=a.is_active==null?true:a.is_active;
+      rows.push(tx(12,y,isAct?'● Active':'○ Inactive',isAct?'#1A8C5C':C.red,9)); y+=13;
+      // actions
+      const acts=(a.actions||[]).slice(0,4);
+      if(acts.length){
+        rows.push(h('line',{x1:10,y1:y,x2:bW-10,y2:y,stroke:C.line,strokeWidth:1})); y+=9;
+        rows.push(lbl(12,y,'ACTIONS')); y+=12;
+        acts.forEach(act=>{rows.push(tx(12,y,this.truncate(act,36),C.dim,9)); y+=11;});
+      }
+      // event edges
+      const evOut=(this.eventEdges||[]).filter(e=>e.from_id===a.id);
+      const evIn=(this.eventEdges||[]).filter(e=>e.to_id===a.id);
+      if(evOut.length||evIn.length){
+        rows.push(h('line',{x1:10,y1:y,x2:bW-10,y2:y,stroke:C.line,strokeWidth:1})); y+=9;
+        rows.push(lbl(12,y,'EVENT CONNECTIONS')); y+=12;
+        evOut.slice(0,2).forEach(e=>{rows.push(tx(12,y,'↗ '+this.truncate(e.event_gid||'',32),'#E67E22',8.5)); y+=11;});
+        evIn.slice(0,2).forEach(e=>{rows.push(tx(12,y,'↙ '+this.truncate(e.event_gid||'',32),'#E67E22',8.5)); y+=11;});
+      }
+      y+=6;
+      const bx=ap.x>=680?ap.x-bW-10:ap.x+200;
+      const by=ap.y;
+      return h('g',{key:'hovSM',transform:'translate('+bx+','+by+')',style:{pointerEvents:'none'}},
+        h('rect',{x:0,y:0,width:bW,height:y,rx:10,fill:'#FFFFFF',stroke:C.border,strokeWidth:1.5,
+          style:{filter:'drop-shadow(0 4px 24px rgba(60,69,69,.22))'}}),
+        h('rect',{x:0,y:0,width:bW,height:4,rx:2,fill:col}),
+        ...rows);
+    }
     const tc=this.typeColor(a.type);
     const seed=a.id.split('').reduce((s,c)=>s+c.charCodeAt(0),0);
     const runsToday=200+(seed%700);
@@ -2733,9 +2824,73 @@ class Component extends DCLogic {
         this.renderAnnotationsPanel(a.id,{compact:true,onNavigate:()=>this.chooseAgent(a.id,{screen:'view'})}))
     ); }
 
+  // ── SkyMFG agent map panel (click on SkyMFG node) ────────────────────────
+  _renderSkyMFGMapPanel(a){ const C=this.C,h=React.createElement;
+    const col=this.domainColor(a.domain);
+    const isAct=a.is_active==null?true:a.is_active;
+    const evOut=(this.eventEdges||[]).filter(e=>e.from_id===a.id);
+    const evIn=(this.eventEdges||[]).filter(e=>e.to_id===a.id);
+    const smFull=(this.skymfgAgents||[]).find(x=>x.agent_gid===a.id);
+    const stat=(label,val,sc)=>h('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',flex:1,padding:'8px 4px',borderRight:'1px solid '+C.line}},
+      h('div',{style:{fontSize:15,fontWeight:700,color:sc||C.text,fontFamily:'JetBrains Mono,monospace'}},val??'—'),
+      h('div',{style:{fontSize:7.5,color:C.faint,textTransform:'uppercase',letterSpacing:'.5px',marginTop:2,whiteSpace:'nowrap'}},label));
+    const evRow=(e,dir)=>{
+      const peer=this.byId(dir==='out'?e.to_id:e.from_id);
+      return h('div',{key:e.event_gid+dir,style:{display:'flex',alignItems:'center',gap:6,padding:'4px 12px',borderBottom:'1px solid '+C.line+'55'}},
+        h('span',{style:{fontSize:9,color:'#E67E22',fontWeight:700,flex:'none'}},dir==='out'?'↗':'↙'),
+        h('span',{style:{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:C.dim,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},e.event_gid||''),
+        peer?h('button',{onClick:()=>this.setState({selectedNode:peer.id,wfFocusId:peer.id,wfMode:'focus'}),
+          style:{font:'inherit',background:'transparent',border:'none',cursor:'pointer',color:C.teal,fontSize:8.5,padding:0,whiteSpace:'nowrap',textDecoration:'underline'}},
+          this.truncate(peer.name||'',14)):null);
+    };
+    return h('div',{style:{width:308,flex:'none',borderLeft:'1px solid '+C.border,background:C.panel,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      // header
+      h('div',{style:{background:col+'0D',borderBottom:'1px solid '+C.border,padding:'10px 14px 8px',flex:'none'}},
+        h('div',{style:{display:'flex',alignItems:'flex-start',gap:6,marginBottom:4}},
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{fontSize:12.5,fontWeight:800,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},a.name),
+            h('div',{style:{fontSize:8,fontFamily:'JetBrains Mono,monospace',color:C.faint,marginTop:2}},a.id)),
+          h('span',{style:{fontSize:7.5,fontWeight:700,padding:'2px 7px',borderRadius:9999,background:col+'18',color:col,border:'1px solid '+col+'44',flex:'none',whiteSpace:'nowrap'}},(a.domain||'').replace('SKYMFG/','')),
+          h('button',{onClick:()=>this.setState({selectedNode:null}),title:'Close',
+            style:{width:22,height:22,border:'none',background:'transparent',borderRadius:6,cursor:'pointer',font:'inherit',fontSize:16,color:C.faint,display:'flex',alignItems:'center',justifyContent:'center',flex:'none',lineHeight:1,padding:0}},'×')),
+        h('div',{style:{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}},
+          h('span',{style:{display:'flex',alignItems:'center',gap:4,fontSize:10,fontWeight:700,color:isAct?'#1A8C5C':C.red}},
+            h('span',{style:{width:6,height:6,borderRadius:'50%',background:isAct?'#1A8C5C':C.red,flex:'none'}}),
+            isAct?'Active':'Inactive'),
+          a.type?h('span',{style:{fontSize:9,fontFamily:'JetBrains Mono,monospace',color:C.dim}},a.type):null,
+          (a.otm_release||smFull?.otm_release)?h('span',{style:{fontSize:9,fontFamily:'JetBrains Mono,monospace',color:C.faint}},a.otm_release||smFull?.otm_release):null)),
+      // stats strip
+      h('div',{style:{display:'flex',borderBottom:'1px solid '+C.border,flex:'none',background:C.panel2}},
+        stat('Complexity',(a.complexity_score??smFull?.complexity_score),col),
+        stat('NORMAL',(a.norm_action_count??smFull?.norm_action_count),C.teal),
+        stat('ERROR',(a.err_action_count??smFull?.err_action_count),C.red),
+        stat('Events',(a.event_count??smFull?.event_count),'#E67E22')),
+      // body
+      h('div',{style:{flex:1,overflowY:'auto',paddingBottom:8}},
+        a.actions?.length?h('div',{},
+          h('div',{style:{fontSize:8.5,fontWeight:800,color:C.faint,textTransform:'uppercase',letterSpacing:'.7px',padding:'7px 14px 4px',borderBottom:'1px solid '+C.line}},'Actions ('+a.actions.length+')'),
+          h('div',{style:{padding:'4px 0'}},
+            (a.actions||[]).slice(0,8).map((act,i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:6,padding:'3px 14px',borderBottom:'1px solid '+C.line+'40'}},
+              h('span',{style:{fontSize:7.5,fontWeight:700,color:C.faint,fontFamily:'JetBrains Mono,monospace',minWidth:18,textAlign:'right'}},(i+1)+''),
+              h('span',{style:{fontFamily:'JetBrains Mono,monospace',fontSize:9,color:C.dim}},this.truncate(act,32)))),
+            a.actions.length>8?h('div',{style:{padding:'3px 14px',fontSize:9,color:C.faint}},'+' +(a.actions.length-8)+' more actions'):null)):null,
+        h('div',{},
+          h('div',{style:{fontSize:8.5,fontWeight:800,color:C.faint,textTransform:'uppercase',letterSpacing:'.7px',padding:'7px 14px 4px',borderBottom:'1px solid '+C.line}},'Event Connections ('+(evOut.length+evIn.length)+')'),
+          (evOut.length||evIn.length)?h('div',{},...evOut.map(e=>evRow(e,'out')),...evIn.map(e=>evRow(e,'in'))):
+            h('div',{style:{padding:'10px 14px',fontSize:11,color:C.faint,fontStyle:'italic'}},'No event connections')),
+        h('div',{style:{padding:'10px 14px',borderTop:'1px solid '+C.border}},
+          h('button',{onClick:()=>{ this.smOpenAgent(a.id); this.setState({selectedNode:null}); },
+            style:{width:'100%',padding:'6px 0',borderRadius:8,border:'none',background:col,color:'#fff',
+              fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}},
+            'Open Full Detail →'))
+      )
+    ); }
+
   // ── agent detail panel ────────────────────────────────────────────────────
   _renderAgentDetailPanel(a){ const C=this.C,h=React.createElement;
     if(!a) return null;
+    // SkyMFG agents get a dedicated panel instead of the NWL tree
+    if(a.domain?.startsWith('SKYMFG')) return this._renderSkyMFGMapPanel(a);
     if(!this._fieldEdgesCache) this._fieldEdgesCache=this._computeFieldEdges();
     const fieldEdges=this._fieldEdgesCache;
     const tc=this.typeColor(a.type);
@@ -2746,7 +2901,8 @@ class Component extends DCLogic {
     // ── blast radius — forward BFS across all edge types ──────────────────
     const allBFSE=[...this.flowEdges.map(e=>({f:e[0],t:e[1]})),
       ...this.aiEdges.map(e=>({f:e[0],t:e[1]})),
-      ...fieldEdges.map(e=>({f:e.from,t:e.to}))];
+      ...fieldEdges.map(e=>({f:e.from,t:e.to})),
+      ...(this.eventEdges||[]).map(e=>({f:e.from_id,t:e.to_id}))];
     const vis=new Set([a.id]); const bfsQ=[a.id];
     while(bfsQ.length){const id=bfsQ.shift();
       allBFSE.forEach(e=>{if(e.f===id&&!vis.has(e.t)){vis.add(e.t);bfsQ.push(e.t);}});}
