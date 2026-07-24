@@ -1,0 +1,12 @@
+- [Catalyst project setup](catalyst-setup.md) — full-stack TMS dashboard; Node/Express API + Replit PostgreSQL; data loads via GET /api/data on componentDidMount.
+- [Compare screen design](compare-screen.md) — replaced Agents & Diff with a full Compare screen; axis picker (Environments/Versions/Domains), step-aligned diff, dep warnings, orphan detection.
+- [Environments screen design](environments-screen.md) — unified DEV/TEST/PROD ops screen (id:'env', T1); tabs: strip, what changed, promote (3-step wizard), version history.
+- [Admin screen design](admin-screen.md) — now 6-tab admin (RBAC/SSO/API Keys/Audit Log/Agent Import/Global Config); Import and Audit Log consolidated here from nav.
+- [UI consolidation](ui-consolidation.md) — nav trimmed from 13→11 items; export dropdown; Agent Query shortcut on Workflow Map; Workbench promote → Env wizard; shared diff helpers.
+- [Blast radius feature](blast-radius.md) — Impact Analysis panel: BFS graph inversion engine, fixed right-side drawer, ⬡ chips wired into reads/writes/trigger/agent cards.
+- [Auth removal](auth-removal.md) — Session auth (express-session, bcryptjs, connect-pg-simple) fully removed; packages uninstalled; app loads directly without login.
+- [Agent Query Engine](agent-query-engine.md) — NL→QueryPlan engine; vocab built live from DB; token similarity handles stemming; OWNER_RE must use `owned?\s+by`; name splitting must include `&`.
+- [Timeline feature](timeline-feature.md) — Time-travel axis in Agent View Compare; snapshot table + endpoint + scrubber UI + step-aligned diff; closing-paren depth gotcha documented.
+- [Database enrichment](db-enrichment.md) — 44 OTM agents across 6 domains; scripts/enrich.js is additive enrichment runner (safe to re-run); overview_metrics must be refreshed manually after agent changes.
+- [Event Ordering screen](event-ordering-screen.md) — "Conflicts" renamed to "Event Ordering"; each conflict has seq diagram, priority fix panel, and gate modal; three new helper methods added.
+- [SkyMFG UI screens](skymfg-ui.md) — Step 3 complete: 4 screens (Overview/Map/List/Workbench) + 4 API routes; post-migration column rename fixes documented.

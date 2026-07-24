@@ -1,0 +1,44 @@
+### 1.5 Process Health → "OTM Process Monitor"
+
+The Process Health screen is already strong with OTM-native concepts (Inbound/Outbound Transmissions, Bulk Plan Run, Long Running Queries, Pre-Split to Split timings). Deepen it.
+
+**Recommendations:**
+
+**a) Add OTM Process Manager job grid.**
+
+Replace the simple "Recurring Schedule Preview" with a full Process Manager view showing actual OTM scheduled processes:
+
+```
+Process Manager — NWL Tenant
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROCESS               CRON          LAST RUN      STATUS   DOMAIN
+Power Data Load       */15 * * * *  16:45 UTC     ✓ 2m 05s  Integration
+Bulk Plan Build       0 */4 * * *   16:00 UTC     ✓ 8m 12s  Planning
+Rate Engine Refresh   0 3 * * *     03:00 UTC     ✓ 4m 30s  Rating
+Settlement Batch      0 22 * * *    22:00 UTC     ✓ 12m 07s Finance
+Sequence Generator    continuous    running       ✓         Core
+GID Recycler          0 1 * * 0     Sun 01:00     ✓ 45s     Core
+Dwell Model Refresh   0 1 * * *     -- MISSED --  ✕         AI
+Carrier Perf Rollup   0 5 * * 1     Mon 05:00     ✓ 3m 21s  Analytics
+```
+
+The key addition: "Power Data Load" and "Bulk Plan Build" — these are OTM-specific batch processes that don't exist in the current jobs table but are the most commonly monitored processes in any OTM implementation.
+
+**b) Expand the RAG grid to include OTM-specific health parameters.**
+
+Add rows that OTM ops teams actually monitor:
+
+| Parameter | What it measures |
+|---|---|
+| Inbound Transmissions | EDI/XML messages received from carriers/customers |
+| Outbound Transmissions | EDI/XML messages sent to carriers (tenders, ASNs) |
+| Bulk Plan Run | Shipment planning batch execution |
+| Long Running Queries | Saved Queries or DIRECT SQL exceeding threshold |
+| Pre-Split to Split | Time from ORDER_RELEASE to shipment split |
+| Split to Planning | Time from split completion to Bulk Plan pickup |
+| Planning to Execution | Time from plan completion to first TENDER_SENT |
+| **Tender Cycle Time** | Time from TENDER_SENT to ACCEPTED/DECLINED (carrier SLA) |
+| **Invoice Match Rate** | % of FREIGHT_BILLs auto-matched within tolerance |
+| **GID Sequence Headroom** | Remaining capacity in OTM sequence generators |
+
+The last three are critical OTM health signals that the current RAG grid doesn't show.

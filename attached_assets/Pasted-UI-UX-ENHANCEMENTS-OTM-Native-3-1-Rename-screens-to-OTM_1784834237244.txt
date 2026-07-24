@@ -1,0 +1,69 @@
+UI/UX ENHANCEMENTS (OTM-Native)
+
+---
+
+### 3.1 Rename screens to OTM terminology
+
+| Current | Rename to | Rationale |
+|---|---|---|
+| Overview | **Command Center** | OTM architects say "let me check the command center" |
+| Process Health | **OTM Process Monitor** | Maps to OTM's Process Manager concept |
+| Workflow Map | **Agent Dependency Graph** | OTM term for agent interconnection |
+| Agent Detail | **Agent Inspector** | "Inspector" implies investigation |
+| Agent Diff | **Promotion Diff** | The purpose is always promotion review |
+| Agent Trace | **Execution Replay** | Replaying an agent's execution |
+| Agent Query | **Data Dictionary** | It's searching the agent data dictionary |
+| Conflicts | **Event Ordering** | Every conflict is an event ordering violation |
+| Agent Workbench | **Agent Editor** | Clear action name |
+| Environments | **Domain Promotion** | OTM term for environment promotion |
+| Admin | **Platform Admin** | Keep as-is, just prefix |
+
+---
+
+### 3.2 Add OTM GID formatting throughout
+
+Every GID displayed in the UI should follow OTM's `DOMAIN.TYPE.ID` convention and be styled consistently:
+
+```
+NWL.SH10293      → Domain: NWL · Type: Shipment · ID: 10293
+NWL.CARR.SWFT    → Domain: NWL · Type: Carrier · ID: SWFT
+NWL.ORD.88291    → Domain: NWL · Type: Order · ID: 88291
+```
+
+On hover, show the decomposed GID. On click, trigger the GID-centric search (recommendation 2.1).
+
+---
+
+### 3.3 Add "OTM Object Type" icons
+
+Replace generic colored dots with domain-specific icons:
+
+| OTM Object | Icon | Where it appears |
+|---|---|---|
+| ORDER_MOVEMENT | 📋 | Agent reads/writes, trace IO |
+| SHIPMENT | 🚛 | Trace runs, GID references |
+| TENDER | 📤 | Tender agent nodes, conflict details |
+| FREIGHT_BILL | 💰 | Invoice agent nodes, audit entries |
+| CARRIER / SERVICE_PROVIDER | 🏢 | Carrier references, performance data |
+| RATE_GEO_COST | 💲 | Rate agent nodes, diff rows |
+| DOCUMENT_SET | 📄 | Document agent nodes |
+
+These should be small (12px) and used sparingly — only where they help distinguish between object types in dense data views (trace IO, diff rows, field lineage).
+
+---
+
+### 3.4 Add "Time-to-Tender" and "Time-to-Settle" as headline metrics
+
+OTM implementations are measured by two cycle times:
+
+- **Time-to-Tender (T2T):** Average elapsed time from ORDER_RELEASED to first TENDER_SENT
+- **Time-to-Settle (T2S):** Average elapsed time from SHIPMENT_DELIVERED to INVOICE_APPROVED
+
+Add these as prominent metrics on the Command Center:
+
+```
+Time-to-Tender    4.2 min avg    ↓ 12% vs last week    (target: <5 min)
+Time-to-Settle    2.1 days avg   ↑ 8% vs last week     (target: <3 days)
+```
+
+These are the metrics that OTM program managers track — putting them front and center positions Catalyst as the source of operational truth.

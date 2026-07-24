@@ -1,0 +1,54 @@
+1.4 Agent Trace → "Agent Execution Replay"
+
+Rename "Agent Trace" to **"Execution Replay"** — it's replaying what happened when an OTM agent ran.
+
+**Recommendations:**
+
+**a) Add Shipment GID cross-agent trace.**
+
+This is the killer feature. When an OTM support engineer gets a call: "Shipment NWL.SH10293 was tendered to the wrong carrier," they need to see every agent that touched that shipment:
+
+```
+NWL.SH10293 — Full execution trace
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+09:41:07  AG-ORD-RATESVC      ORDER_RELEASED    448ms   ✓  RATE_GID=RT.20811
+09:41:08  AG-ORD-CREDITHOLD   ORDER_RELEASED    203ms   ✓  No hold applied
+09:52:14  AG-AI-DWELL         SHIPMENT_PLANNED  450ms   ⚠  Confidence 0.42 < threshold
+09:52:14  AG-SHIP-AUTOTENDER  SHIPMENT_PLANNED  1842ms  ⚠  TENDER_HINT race — fallback
+09:52:16  AG-SHIP-TENDERRESP  TENDER_RESPONSE   318ms   ✓  ACCEPTED · JBH
+09:52:17  AG-SHIP-DOCGEN      SHIPMENT_CONFIRMED 624ms  ✓  BOL generated
+```
+
+Add a **"Trace by GID"** search at the top: enter any OTM GID (ORDER_MOVEMENT_GID, SHIPMENT_GID, FREIGHT_BILL_GID) and see the cross-agent journey. This search works by matching the GID against IO strings in trace_steps.
+
+**b) Show OTM domain object state transitions.**
+
+For each agent run, show the OTM object state before and after:
+
+```
+AG-SHIP-AUTOTENDER on NWL.SH10290
+  SHIPMENT_STATUS:  PLANNED → TENDERED
+  TENDER_STATUS:    (new) → SENT
+  CARRIER_GID:      (null) → NWL.CARR.JBH
+```
+
+This is how OTM architects think — in state transitions on domain objects, not in raw IO strings.
+
+**c) Add "Carrier API response" context for tender agents.**
+
+When the trace shows a carrier API call (POST /v2/tender), expand to show the carrier-side context:
+
+```
+Carrier API: NWL.CARR.SWFT (Swift Freight)
+  Endpoint: POST /v2/tender
+  Payload:  2.1KB · rate=$1,842.00 · service=LTL
+  Response: TIMEOUT after 30,000ms
+  EDI 990:  Not received within ack window
+  History:  SWFT avg response 1,204ms · timeout rate 4.2% (above 2% threshold)
+```
+
+The EDI 990 reference is critical — in OTM, a tender acknowledgment comes via EDI 990. Showing that the 990 was never received maps the technical timeout to the business process.
+
+**d) Link trace failures to the OTM Transmission Log.**
+
+When an agent run fails on an external call (carrier API, EDI transmission, Power Data load), add a link: "View in OTM Transmission Log → filter: CARRIER=SWFT, DATE=2026-06-29, STATUS=ERROR." Even if this just generates the filter parameters for the user to paste into OTM Console, it closes the "Catalyst told me it failed, now I need to go find the transmission in OTM" gap.

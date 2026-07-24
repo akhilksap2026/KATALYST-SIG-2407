@@ -1,0 +1,100 @@
+STEP 1 — DATABASE SCHEMA
+
+Create or update the following tables. If tables exist with different column names, migrate them. All tables use TEXT primary keys (OTM GIDs are strings).
+
+tenants
+sql
+CREATE TABLE IF NOT EXISTS tenants (
+  tenant_id         TEXT PRIMARY KEY,       -- 'SKYMFG'
+  tenant_name       TEXT NOT NULL,          -- 'SkyMFG'
+  otm_instance_url  TEXT,
+  otm_version       TEXT,                   -- '26B'
+  description       TEXT,
+  created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+domains
+sql
+CREATE TABLE IF NOT EXISTS domains (
+  domain_name       TEXT PRIMARY KEY,       -- 'SKYMFG', 'SKYMFG/LW', 'SKYMFG/RAIL', etc.
+  tenant_id         TEXT REFERENCES tenants(tenant_id),
+  display_label     TEXT NOT NULL,          -- 'SKYMFG / RAIL'
+  description       TEXT,
+  environment_type  TEXT NOT NULL,          -- 'PROD', 'CLIENT_PROD', 'DEMO', 'TRAINING', 'SYSTEM'
+  theme_color       TEXT,                   -- hex color for UI badges
+  agent_count       INTEGER DEFAULT 0,
+  created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+agents
+
+This is the core table. Every column maps 1:1 to an OTM Agent XML attribute.
+
+sql
+CREATE TABLE IF NOT EXISTS agents (
+  agent_gid             TEXT PRIMARY KEY,       -- 'SKYMFG/RAIL.SHP-CREATED-IUXRM-V09'
+  agent_xid             TEXT NOT NULL,          -- 'SHP-CREATED-IUXRM-V09' (display name)
+  domain_name           TEXT NOT NULL REFERENCES domains(domain_name),
+  data_query_type_gid   TEXT NOT NULL,          -- 'SHIPMENT', 'ORDER RELEASE', 'INVOICE', etc.
+  is_active             BOOLEAN DEFAULT TRUE,
+  reentrancy_level      INTEGER DEFAULT 0,
+  run_as_type           TEXT DEFAULT 'USER ROLE',
+  is_single_thread      BOOLEAN DEFAULT FALSE,
+  is_object_lock        BOOLEAN DEFAULT FALSE,
+  is_long_running       BOOLEAN DEFAULT FALSE,
+  otm_release           TEXT,                   -- '26.2.1-20260529'
+  saved_condition_gid   TEXT,                   -- optional pre-filter condition
+  log_level             TEXT,                   -- 'ACTIONS', '', etc.
+  stats_level           TEXT,
+  norm_action_count     INTEGER DEFAULT 0,
+  err_action_count      INTEGER DEFAULT 0,
+  event_count           INTEGER DEFAULT 0,
+  complexity_score      REAL DEFAULT 0,
+  functional_categories TEXT,                   -- JSON array: '["Status Management","Tendering"]'
+  created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+agent_events
+sql
+CREATE TABLE IF NOT EXISTS agent_events (
+  id                SERIAL PRIMARY KEY,
+  agent_gid         TEXT NOT NULL REFERENCES agents(agent_gid),
+  event_gid         TEXT NOT NULL,              -- 'SHIPMENT - CREATED', 'ORDER - MODIFIED', etc.
+  event_params      TEXT                        -- raw parameter string from OTM
+);
+agent_actions
+sql
+CREATE TABLE IF NOT EXISTS agent_actions (
+  id                SERIAL PRIMARY KEY,
+  agent_gid         TEXT NOT NULL REFERENCES agents(agent_gid),
+  action_flow       TEXT NOT NULL DEFAULT 'NORMAL',  -- 'NORMAL' or 'ERROR'
+  action_sequence   INTEGER NOT NULL,
+  action_gid        TEXT NOT NULL,              -- 'IF', 'SET INTERNAL STATUS - SHIPMENT', 'SECURE RESOURCES', etc.
+  action_params     TEXT,                       -- raw parameter string
+  data_type_assoc   TEXT                        -- e.g. 'SHIPMENT TO SELL SIDE SHIPMENT'
+);
+CREATE INDEX idx_agent_actions_gid ON agent_actions(agent_gid, action_flow, action_sequence);
+data_query_types
+sql
+CREATE TABLE IF NOT EXISTS data_query_types (
+  gid           TEXT PRIMARY KEY,   -- 'SHIPMENT', 'ORDER RELEASE', 'INVOICE', etc.
+  agent_count   INTEGER DEFAULT 0
+);
+saved_conditions
+sql
+CREATE TABLE IF NOT EXISTS saved_conditions (
+  condition_gid TEXT PRIMARY KEY
+);
+external_systems
+sql
+CREATE TABLE IF NOT EXISTS external_systems (
+  external_system_gid TEXT PRIMARY KEY      -- 'SKYMFG/RAIL.ACCRUAL_TO_ERP'
+);
+otm_users
+sql
+CREATE TABLE IF NOT EXISTS otm_users (
+  user_gid TEXT PRIMARY KEY                 -- 'SKYMFG/RAIL.AOMAR', 'DBA.ADMIN', etc.
+);
+notification_contacts
+sql
+CREATE TABLE IF NOT EXISTS notification_contacts (
+  contact_gid TEXT PRIMARY KEY              -- 'SKYMFG/RAIL.OTM-ERROR-TECHNICAL'
+);

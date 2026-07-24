@@ -1,0 +1,42 @@
+C. FUNCTIONAL GAPS — Things That Don't Fully Work
+C1. Agent Workbench: test regression logic is hardcoded to AG-SHIP-RETENDER only
+
+The runTests() method at line 2390 checks specifically for ack_timeout and retry patterns in the draft text — this is tailored to the retender agent's TC-04. For any other agent, the workbench shows "No regression tests" with a placeholder. This is by design (demo product), but if you want this screen to be best-in-class, every agent should either have a test suite or have a clear "Create first test" CTA.
+
+C2. Environment "What Changed" tab filtering is incomplete
+
+The time-window filter (1h/6h/24h/7d/30d) is rendered with buttons but the actual filtering at line 2996 only filters by environment, not by time:
+
+js
+const filtered = this.audit.filter(a => {
+  if(selEnv === 'ALL') return true;
+  return (a.env || '').includes(selEnv);
+});
+
+The win variable (time window) is set in state but never used in the filter.
+
+Fix: Add time-based filtering using the audit entry timestamps.
+
+C3. SSO "Test connection" is random
+
+api.js:546: const ok = Math.random() > 0.1; — This is obviously placeholder. Fine for a demo, but the UI shows a real "connected" / "error" badge that persists to the database. A user might believe their SSO is actually tested.
+
+Fix: Either wire to a real connection test, or label the button "Simulate test" and add a "(demo)" badge.
+
+C4. API Key rotation shows the raw key once but there's no "copy" interaction
+
+When you generate a new API key or rotate, the raw_key is returned by the API but the frontend's key generation modal doesn't appear to have a one-time-copy-then-dismiss flow. The adminNewKey state is set but the rendering shows the key only briefly.
+
+Fix: Show a "Copy to clipboard" button with a clear "this key will not be shown again" warning, and only dismiss on explicit user action.
+
+C5. Import Wizard step 3 (Reconcile) is missing
+
+The wizard defines 4 steps: "Source & Scope", "Preview & Parse", "Reconcile", "Confirm". But renderImport() jumps from step 2 directly to step 4. There's no if(step===3) block — the stepper shows step 3 but it's unreachable.
+
+Fix: Add a reconcile step that lets the user review final import actions before execution, or merge it into step 2 and relabel the stepper to 3 steps.
+
+C6. "Re-run" and "Run history" on Trace screen are toast-only stubs
+
+The Re-run button shows "Re-queued RUN-XXXXX" as a toast. The Run history dropdown shows "Run history requires live OOB log connection" on change. Both are dead ends.
+
+Fix: Either wire these to real functionality or change the button labels to indicate they require a live connection (disabled state with tooltip).

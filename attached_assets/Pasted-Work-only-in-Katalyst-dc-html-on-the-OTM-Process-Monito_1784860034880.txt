@@ -1,0 +1,13 @@
+Work only in Katalyst.dc.html, on the OTM Process Monitor screen (the renderHealth method).
+I have a spec that says exactly which health widgets belong in Catalyst and which don't. Most of these widgets already exist on this screen — I want you to check what's built against the spec, then bring it into line. This is a reconcile-and-refine job, not a rebuild.
+
+THE SPEC — five widgets are IN SCOPE, everything else is explicitly OUT:
+1. Automation Throughput — KPI tiles (Fresh/queued and Staged counts per domain) plus an hourly volume chart stacked by trigger type (Classic Agent / AI Agent / Manual), plus a recent-activity table (Time, Object Type, Domain, Count).
+2. Business Process Volume — a multi-domain grid of business metrics (Orders in Process, Bulk Plans Run, Shipments Created, Shipments Approved, Item Master Load, Pending Split). A zero that should be non-zero shows red; a healthy non-zero shows green — but that rule must be overridable per metric, because a genuine zero is sometimes correct.
+3. Automation & Query Health — a Red/Amber/Green grid of automation metrics per domain (Inbound/Outbound Transmissions, Bulk Plan Run, Long Running Queries, Pre-Split to Split, Split to Planning, Planning to Execution). Clicking a Red or Amber cell opens a drill-down; for a Long Running Query, the drill-down shows session ID, SQL ID, actual duration, and the threshold it exceeded.
+4. Recurring Schedule Preview — a table of upcoming scheduled jobs (Schedule time, Program/Agent, Domain, Topic) with a configurable look-ahead window, default 1 hour.
+5. Capacity Risk — sequence/refnum exhaustion shown as a percentage-used chart with amber and red threshold lines (default 70% and 90%), not a plain numbers table.
+
+OUT OF SCOPE — must NOT appear on this screen: anything infrastructure-tier — server responding/uptime, response times, database job lists, cluster or failover topology, and logs-enabled toggles. These belong to Oracle Enterprise Manager or a DBA tool, not Catalyst. Catalyst governs automation, not servers.
+
+DO NOT MODIFY: any other screen, api.js, schema.sql, seed.js, the nav, or the underlying data arrays.

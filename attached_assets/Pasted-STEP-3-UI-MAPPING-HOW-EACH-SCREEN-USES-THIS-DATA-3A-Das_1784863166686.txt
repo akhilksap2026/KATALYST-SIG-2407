@@ -1,0 +1,149 @@
+STEP 3 — UI MAPPING: HOW EACH SCREEN USES THIS DATA
+3A. Dashboard / Home Screen
+
+Show these real summary cards:
+
+Card Label	Value Source
+Total Agents	SELECT COUNT(*) FROM agents → 150
+Active Agents	SELECT COUNT(*) FROM agents WHERE is_active = TRUE → 150
+Domains	SELECT COUNT(*) FROM domains → 6
+Data Query Types	SELECT COUNT(*) FROM data_query_types → 18
+Action Steps (Total)	SELECT COUNT(*) FROM agent_actions → 1,636
+Agents with Error Flows	SELECT COUNT(DISTINCT agent_gid) FROM agent_actions WHERE action_flow = 'ERROR' → 49
+Avg Complexity Score	SELECT ROUND(AVG(complexity_score),1) FROM agents
+OTM Release	Show the most common release version
+
+Domain Distribution Chart (donut/pie): Show agent count per domain with the domain's theme_color.
+
+Data Query Type Breakdown (horizontal bar):
+
+SHIPMENT: 58
+ORDER RELEASE: 44
+INVOICE: 21
+TRACKING EVENT: 9
+(remaining 14 types with ≤3 each, group as "Other")
+
+Functional Category Heatmap (optional): Parse functional_categories JSON from all agents, count occurrences.
+
+3B. Agent Map Screen
+
+The Agent Map is a visual topology of agents organized by domain.
+
+Layout: A tree/grid where the top level is Domain, second level is Data Query Type, and leaf nodes are individual Agents.
+
+For each agent node, show:
+
+agent_xid as the display name (NOT the full GID — the GID goes in the detail panel)
+A colored badge for the domain (use theme_color from the domains table)
+A small icon or indicator for data_query_type_gid (e.g., truck icon for SHIPMENT, document icon for INVOICE, box icon for ORDER RELEASE)
+The complexity_score as a heat indicator (green ≤ 10, yellow 10–30, orange 30–70, red > 70)
+Count of actions: norm_action_count + err_action_count
+
+Clicking an agent node opens the Agent Workbench for that agent.
+
+3C. Agent List Screen
+
+A filterable, sortable data table with columns:
+
+Column	Source Field	Sortable	Filterable
+Agent XID	agent_xid	Yes	Search
+Agent GID	agent_gid	Yes	Search
+Domain	domain_name	Yes	Multi-select dropdown (6 values)
+Data Query Type	data_query_type_gid	Yes	Multi-select dropdown (18 values)
+Active	is_active	Yes	Toggle
+OTM Release	otm_release	Yes	Multi-select
+Actions (Normal)	norm_action_count	Yes	Range
+Actions (Error)	err_action_count	Yes	Range
+Events	event_count	Yes	Range
+Complexity	complexity_score	Yes	Range
+Categories	functional_categories	No	Multi-select (parse JSON)
+
+Row click opens Agent Workbench for that agent.
+
+3D. Agent Workbench (Detail View)
+
+This is the most important screen. When a user opens an agent, they see:
+
+Header Section:
+
+Agent XID (large, bold)
+Agent GID (smaller, monospace)
+Domain badge (colored)
+Data Query Type badge
+Active/Inactive status pill
+OTM Release version tag
+Functional Category chips (parsed from functional_categories JSON)
+
+Metadata Panel (collapsible):
+
+Reentrancy Level: reentrancy_level
+Run As Type: run_as_type
+Single Thread: is_single_thread (Y/N)
+Object Lock: is_object_lock (Y/N)
+Long Running: is_long_running (Y/N)
+Saved Condition: saved_condition_gid (if set, show with a filter icon)
+Log Level: log_level
+Stats Level: stats_level
+Complexity Score: complexity_score (with color-coded badge)
+
+Event Triggers Section: Query: SELECT * FROM agent_events WHERE agent_gid = ?
+
+Display as a list of event cards:
+
+🔔 SHIPMENT - CREATED
+   Params: -beforePersist false -dataSource INTEGRATION,INTERNAL,USER
+
+For agents with multiple events, show all of them.
+
+Action Flow Section (THE CRITICAL PART):
+
+Query: SELECT * FROM agent_actions WHERE agent_gid = ? ORDER BY action_flow, action_sequence
+
+Display as a visual step sequence — this is what OTM architects care about.
+
+Normal Flow (show with a green sidebar): Render each action as a numbered step card:
+
+ 1 │ IF                             ┐
+   │ -savedCondition SKYMFG/RAIL... │
+ 2 │ ASSIGN RATE                    │  (indented inside IF)
+   │ -role ADMIN -user ...          │
+ 3 │ ENDIF                          ┘
+ 4 │ SET INTERNAL STATUS - SHIPMENT
+   │ -statusValue ENROUTE_COMPLETED
+
+IMPORTANT rendering rules for the action flow:
+
+IF, ELSEIF, ELSE, ENDIF create visual nesting/indentation
+STOP shows as a red terminator node
+FOR EACH shows as a loop indicator
+LOG shows with a grey/muted style
+DIRECT SQL UPDATE shows with a warning badge (⚠️ DIRECT SQL)
+RAISE INTERNAL EVENT shows with a chain-link icon (triggers another agent)
+RAISE ERROR shows in red
+DONT PERSIST shows with a rollback icon
+
+Error Flow (show with a red sidebar): Same step-card rendering, but visually separated and marked as "Error Handler".
+
+Parameters Display: For each action, parse the action_params string and display key-value pairs:
+
+-role ADMIN → Role: ADMIN
+-user SKYMFG/RAIL.AOMAR → Run-As User: SKYMFG/RAIL.AOMAR
+-statusValue ENROUTE_COMPLETED → Status Value: ENROUTE_COMPLETED
+-savedCondition ... → Condition: ...
+-externalSystem ... → External System: ... (with an integration icon)
+-sqlStatement ... → SQL Statement: ... (show in a code block)
+3E. Domain Selector / Environment Switcher
+
+The app should have a global domain filter (top nav or sidebar) that lets the user view:
+
+All Domains (default — shows all 150 agents)
+SKYMFG (24 agents)
+SKYMFG / DEMO (15 agents)
+SKYMFG / LW (41 agents)
+SKYMFG / RAIL (46 agents)
+SKYMFG / TRAINING (19 agents)
+PUBLIC (System) (5 agents)
+
+Each domain option shows its theme_color as a left-border or dot, and the agent count.
+
+When a domain is selected, ALL screens (Dashboard, Agent Map, Agent List, Workbench) filter to that domain.

@@ -1,0 +1,50 @@
+### 1.8 Conflicts → "Event Ordering Violations"
+
+Rename "Conflicts" to **"Event Ordering"** — because every conflict in the system is fundamentally an OTM event ordering problem: two agents firing on the same event with non-deterministic execution order.
+
+**Recommendations:**
+
+**a) Show the OTM event sequencing diagram for each conflict.**
+
+For C-002 (AG-SHIP-AUTOTENDER vs AG-AI-DWELL on SHIPMENT_PLANNED):
+
+```
+SHIPMENT_PLANNED event fired
+  ├─ AG-AI-DWELL         (priority: Medium)  writes: TENDER_HINT
+  ├─ AG-SHIP-AUTOTENDER  (priority: Critical) reads: TENDER_HINT
+  │
+  Race window: 504ms average
+  In 23% of runs, AUTOTENDER fires before DWELL writes TENDER_HINT
+  Result: AUTOTENDER falls back to default carrier selection (no AI scoring)
+```
+
+This shows the problem in OTM Agent Technology terms: two agents on the same event, one writes a field the other reads, execution order is non-deterministic.
+
+**b) Add "Priority Resequencing" as a resolution action.**
+
+OTM resolves agent execution order through priority settings. Add a button: "Suggest priority fix" that computes:
+
+```
+Suggested fix for C-001:
+  Current:  AG-ORD-RATESVC (High, priority=50) fires before AG-ORD-CREDITHOLD (Critical, priority=10)
+  Problem:  OTM evaluates lower numeric priority first — 10 < 50, so CREDITHOLD runs first.
+            But both write ORDER_STATUS, creating a RATED + CREDIT-HELD collision.
+  Fix:      Gate AG-ORD-RATESVC on HOLD_STATUS IS NULL
+            → Apply in Workbench → Run regression → Promote
+```
+
+The priority explanation uses OTM's actual priority numbering (lower number = higher priority), which is counterintuitive and causes real confusion.
+
+**c) Add "Event Gate" configuration directly from the conflict screen.**
+
+The suggested fix for most conflicts is an event gate — make agent B wait for agent A to complete. Add a "Configure gate" button that opens a modal:
+
+```
+Event Gate: AG-SHIP-AUTOTENDER waits for AG-AI-DWELL
+  Gate type:      Field availability (TENDER_HINT)
+  Timeout:        500ms (bounded wait)
+  Fallback:       Proceed with default carrier selection
+  Apply to:       DEV (draft) → test → promote
+```
+
+This is the actual OTM fix pattern — it shouldn't require the user to mentally translate the suggested fix text into configuration steps.

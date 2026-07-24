@@ -1,0 +1,62 @@
+### 1.7 Environments → "Domain Promotion Console"
+
+Rename "Environments" to **"Domain Promotion"** — this is the OTM term for moving configuration between environments.
+
+**Recommendations:**
+
+**a) Show OTM version and patch level on each environment card.**
+
+```
+PROD — OTM 26B · Patch Set 4 · v2.4.0
+  otm26b.nwl.oraclecloud.com
+  12 agents · 0 pending promotions
+  Git: main · nwl/otm-agents
+
+TEST — OTM 26B · Patch Set 5 · v2.4.1
+  otm26b-test.nwl.oraclecloud.com
+  12 agents · 4 ahead of PROD
+  Git: release/2.4.1 · nwl/otm-agents
+```
+
+The OTM patch set level matters — if TEST is on Patch Set 5 but PROD is on Patch Set 4, some agent features may not work after promotion. Flag this: "⚠ Patch set mismatch: TEST (PS5) → PROD (PS4). Verify agent API compatibility."
+
+**b) Add OTM-specific preflight checks.**
+
+Extend the promotion preflight service with OTM-native validations:
+
+| Check | What it catches |
+|---|---|
+| **DIRECT SQL compatibility** | Agent uses DIRECT SQL that references tables changed in the target patch set |
+| **REFNUM type existence** | Agent reads a REFNUM (e.g. CARRIER_SCORE) that may not be configured in the target environment |
+| **GID format validation** | Agent writes GIDs — verify the sequence generator is configured in the target |
+| **Event listener collision** | Promoting this agent creates a duplicate listener on an event already handled by another agent in the target |
+| **Qualifier dependency** | Agent conditions reference OTM Qualifiers that must exist in the target environment |
+
+The first two already exist in the preflight service (`PROD_RESTRICTED_REFS`). Formalizing them as named OTM-specific checks makes the preflight report speak OTM language.
+
+**c) Add a "Promotion Runbook" generator.**
+
+After the preflight passes, generate a step-by-step runbook:
+
+```
+Domain Promotion Runbook — TEST → PROD
+Generated: 2026-06-30 09:42 UTC
+
+Pre-promotion:
+  1. Verify OTM_TENDER_GID sequence has >5,000 remaining in PROD
+  2. Confirm CARRIER_SCORE REFNUM type exists in PROD Qualifier setup
+  3. Take configuration snapshot (rollback point)
+
+Promotion:
+  4. Promote AG-SHIP-AUTOTENDER v2.4.0 → v2.4.1
+  5. Promote AG-AI-DWELL v3.1.0 → v3.2.0-beta
+  6. Promote AG-SHIP-RETENDER v2.0.3 → v2.0.4
+  7. Promote AG-INV-AUTOAPPROVE v2.2.1 → v2.2.2
+
+Post-promotion:
+  8. Run Saved Query SQ-AGENT-HEALTH-CHECK against PROD
+  9. Monitor TENDER_DECLINED event rate for 30 minutes
+  10. Verify AG-AI-DWELL confidence scores >0.60 on next SHIPMENT_PLANNED
+```
+
+This is the deliverable that OTM consultants currently build manually in Word. Generating it automatically from the preflight result makes Catalyst indispensable.

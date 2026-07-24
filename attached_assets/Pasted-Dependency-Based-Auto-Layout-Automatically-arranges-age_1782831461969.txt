@@ -1,0 +1,12 @@
+Dependency-Based Auto-Layout: Automatically arranges agents from left to right based on their actual execution order and dependency depth (using the Dagre algorithm), replacing arbitrary category columns.
+Explicit Edge Data & Validation: Converts visual lines into real, data-driven trigger relationships. Includes a human-validation step to ensure the AI doesn't guess incorrect relationships.
+Visual Edge Distinction: Renders solid lines for deterministic/rule-based agent triggers, and dashed lines for AI-mediated or conditional triggers.Hover-to-Inspect Bubbles: When Hover-to-Inspect Bubbles: When hovering over any agent card, a floating diagnostic panel appears showing execution metrics (last run time, success/fail counts).
+Rule-Based Logic Transparency: For standard agents, the bubble shows the exact conditions evaluated (e.g., retry_count < 3 → TRUE) and which branch was taken.
+AI Logic Transparency: For AI agents, the bubble uses a distinct visual layout to show confidence scores and the top input factors influencing the decision, ensuring AI is never misrepresented as simple IF/THEN logic.
+Data Operations Log: Shows exactly what data the agent read and wrote during its last execution (e.g., wrote TENDER_STATUS = RETENDERED).
+Suggested Resolutions: Provides actionable, plain-English guidance on how to resolve the conflict (e.g., "Reorder execution priority...").
+
+Smart Category Filtering: The existing category filter pills (Tender, Rating, AI, etc.) now seamlessly dim or hide non-matching nodes on the interactive canvas without breaking the connecting edges.
+JSON Graph Export: Adds a functional "Export to JSON" button that downloads the current state of the graph (nodes, edges, positions, metadata) for documentation or offline sharing.
+Performance Optimization: Implements React.memo, lazy-loading for tooltips, and memoized layout calculations to ensure the canvas remains buttery smooth even with 50+ agents.
+Error Boundaries: Wraps the canvas in error handling to provide a graceful fallback UI and retry button if the graph fails to render, preventing full-screen crashes.
