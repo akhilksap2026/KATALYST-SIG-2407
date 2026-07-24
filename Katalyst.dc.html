@@ -1455,12 +1455,13 @@ class Component extends DCLogic {
   // ---------- chrome ----------
   renderNav(){ const C=this.C,h=React.createElement;
     const SH={text:'#FFFFFF',dim:'rgba(255,255,255,.78)',faint:'rgba(255,255,255,.45)',border:'rgba(255,255,255,.10)'};
-    const logo=h('div',{key:'lg','data-cat-logo':true,style:{padding:'16px 14px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid '+SH.border}},
-      h('div',{style:{width:28,height:28,borderRadius:7,background:'linear-gradient(135deg,#3a74f5,#1a3270)',display:'flex',alignItems:'center',justifyContent:'center',flex:'none',boxShadow:'0 3px 10px rgba(0,0,0,.35)'}},
-        h('div',{style:{width:10,height:10,background:'#FFFFFF',borderRadius:2,transform:'rotate(45deg)',opacity:.95}})),
+    const logo=h('div',{key:'lg','data-cat-logo':true,style:{padding:'13px 12px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid '+SH.border}},
+      h('img',{src:'/attached_assets/ksap-logo_1784884837245.png',alt:'KSAP',
+        style:{height:26,width:'auto',borderRadius:4,flex:'none',display:'block',
+          boxShadow:'0 2px 8px rgba(0,0,0,.32)'}}),
       h('div',{},
-        h('div',{style:{fontSize:13,fontWeight:700,letterSpacing:'.1px',color:SH.text}},'Katalyst'),
-        h('div',{style:{fontSize:9,color:SH.faint,fontFamily:'JetBrains Mono,monospace',marginTop:0}},'OTM/GTM · 26B')));
+        h('div',{style:{fontSize:12.5,fontWeight:700,letterSpacing:'.2px',color:SH.text}},'Katalyst'),
+        h('div',{style:{fontSize:9,color:SH.faint,fontFamily:'JetBrains Mono,monospace',marginTop:1}},'OTM/GTM · 26B')));
     const items=[];
     this.nav.forEach(it=>{
       if(it.section) items.push(h('div',{key:'sec-'+it.id,style:{fontSize:10,fontWeight:700,letterSpacing:'.8px',textTransform:'uppercase',color:SH.faint,padding:'10px 10px 3px',marginTop:4}},it.section));
@@ -1553,7 +1554,12 @@ class Component extends DCLogic {
           h('span',{style:{color:TB.faint,fontSize:12,lineHeight:1,userSelect:'none'}},'›'),
           h('span',{style:{fontSize:13,fontWeight:700,color:TB.text,whiteSpace:'nowrap'}},titles[this.state.screen]))
       : h('div',{style:{fontSize:15,fontWeight:600,whiteSpace:'nowrap',color:TB.text}},titles[this.state.screen]);
-    const left=h('div',{style:{display:'flex',alignItems:'center',gap:12,minWidth:0}}, crumb, picker);
+    const ksapLogo=h('img',{src:'/attached_assets/ksap-logo_1784884837245.png',alt:'KSAP',
+      style:{height:22,width:'auto',borderRadius:3,flex:'none',opacity:.92,display:'block'}});
+    const left=h('div',{style:{display:'flex',alignItems:'center',gap:14,minWidth:0}},
+      ksapLogo,
+      h('span',{style:{width:1,height:18,background:TB.border,flex:'none'}}),
+      crumb, picker);
     const envs=['DEV','TEST','PROD'];
     const envColors={DEV:'rgba(255,255,255,.18)',TEST:'rgba(20,40,100,.55)',PROD:C.prod};
     const seg=h('div',{style:{display:'flex',border:'1px solid '+TB.border,borderRadius:8,overflow:'hidden',flex:'none',background:TB.bg}},
@@ -6877,10 +6883,11 @@ class Component extends DCLogic {
   renderView(){ const C=this.C,h=React.createElement;
     if(!this.state._apiLoaded&&!this.state._apiError){
       return h('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,height:'100%',minHeight:'60vh',textAlign:'center',userSelect:'none'}},
-        h('div',{style:{width:76,height:76,borderRadius:'50%',background:C.teal+'12',border:'2px solid '+C.teal+'38',display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,flex:'none',boxShadow:'0 0 0 8px '+C.teal+'08'}},'⬡'),
+        h('img',{src:'/attached_assets/ksap-logo_1784884837245.png',alt:'KSAP',
+          style:{height:54,width:'auto',borderRadius:8,boxShadow:'0 4px 24px rgba(36,87,197,.3)',flex:'none'}}),
         h('div',{style:{display:'flex',flexDirection:'column',gap:3}},
-          h('div',{style:{fontSize:22,fontWeight:800,color:C.text,letterSpacing:'.4px'}},'Katalyst'),
-          h('div',{style:{fontSize:11.5,color:C.faint,fontFamily:'JetBrains Mono,monospace',letterSpacing:'.2px'}},'DTM/GTM · 26B')),
+          h('div',{style:{fontSize:20,fontWeight:800,color:C.text,letterSpacing:'.4px'}},'Katalyst'),
+          h('div',{style:{fontSize:11.5,color:C.faint,fontFamily:'JetBrains Mono,monospace',letterSpacing:'.2px'}},'OTM/GTM · 26B')),
         h('span',{style:{width:22,height:22,border:'3px solid '+C.teal+'30',borderTopColor:C.teal,borderRadius:'50%',display:'inline-block',animation:'spin 0.85s linear infinite',marginTop:4}}),
         h('div',{style:{fontSize:12,color:C.dim,marginTop:2}},'Connecting to OTM API…')); }
     if(this.state._apiError){
