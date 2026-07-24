@@ -2078,9 +2078,9 @@ class Component extends DCLogic {
   _computeFieldEdges(){
     const norm=f=>f.replace(/\[\]$/,'');
     const wMap={};
-    this.agents.forEach(a=>(a.writes||[]).forEach(f=>{const nf=norm(f);(wMap[nf]=wMap[nf]||[]).push(a.id);}));
+    (this.nwlAgents||this.agents).forEach(a=>(a.writes||[]).forEach(f=>{const nf=norm(f);(wMap[nf]=wMap[nf]||[]).push(a.id);}));
     const edges=[];const seen=new Set();
-    this.agents.forEach(reader=>{
+    (this.nwlAgents||this.agents).forEach(reader=>{
       (reader.reads||[]).forEach(f=>{
         (wMap[norm(f)]||[]).forEach(wid=>{
           if(wid===reader.id)return;
@@ -2125,7 +2125,8 @@ class Component extends DCLogic {
 
   _wfComputeFit(){
     const mode=this.state.wfMode||'focus';
-    const focusId=this.state.wfFocusId||this.state.activeAgent||this.agents[0]?.id||'';
+    const _mapAgents=this.nwlAgents||this.agents;
+    const focusId=this.state.wfFocusId||this.state.activeAgent||_mapAgents[0]?.id||'';
     const cp=this.state.wfCustomPos||{};
     if(!this._fieldEdgesCache) this._fieldEdgesCache=this._computeFieldEdges();
     let layout=null;
@@ -2133,7 +2134,7 @@ class Component extends DCLogic {
     const getP=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:
       mode==='focus'?(layout?.pos?.[a.id]||{x:a.gx,y:a.gy}):{x:a.gx,y:a.gy};
     const NW=190,NH=88,PAD=72;
-    const subset=mode==='focus'&&layout?this.agents.filter(a=>layout.pos[a.id]):this.agents;
+    const subset=mode==='focus'&&layout?_mapAgents.filter(a=>layout.pos[a.id]):_mapAgents;
     if(!subset.length)return null;
     const xs=subset.map(a=>getP(a).x),ys=subset.map(a=>getP(a).y);
     const minX=Math.min(...xs)-PAD,minY=Math.min(...ys)-PAD;
@@ -2144,8 +2145,9 @@ class Component extends DCLogic {
 
   renderGraph(){ const C=this.C,h=React.createElement;
     try {
+    const _mapAgents=this.nwlAgents||this.agents;
     const mode=this.state.wfMode||'focus';
-    const focusId=this.state.wfFocusId||this.state.activeAgent||this.agents[0]?.id||'';
+    const focusId=this.state.wfFocusId||this.state.activeAgent||_mapAgents[0]?.id||'';
     const panX=this.state.wfPanX||0,panY=this.state.wfPanY||0,zoom=this.state.wfZoom||0.79;
     const colorBy=this.state.wfColorBy||'type';
     const hiddenDomains=this.state.wfHiddenDomains||[];
@@ -2174,7 +2176,7 @@ class Component extends DCLogic {
       getPos=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:(layout.pos[a.id]||{x:a.gx,y:a.gy});
     } else {
       getPos=a=>cp[a.id]?{x:cp[a.id].x,y:cp[a.id].y}:{x:a.gx,y:a.gy};
-      connectedSet=new Set(this.agents.map(a=>a.id));
+      connectedSet=new Set(_mapAgents.map(a=>a.id));
     }
     // edgePath adapter: call with position-overridden objects
     const ep=(a,b,bow)=>this.edgePath({gx:getPos(a).x,gy:getPos(a).y},{gx:getPos(b).x,gy:getPos(b).y},bow);
@@ -2326,7 +2328,7 @@ class Component extends DCLogic {
           h('text',{x:0,y:4,textAnchor:'middle',fontSize:10,fontFamily:'JetBrains Mono,monospace',fontWeight:700,fill:col},cf.id))); }).filter(Boolean); }
 
     // ── nodes ─────────────────────────────────────────────────────────────
-    const nodes=this.agents.map(a=>{
+    const nodes=_mapAgents.map(a=>{
       const hidden=isHidden(a);const sel=this.state.selectedNode===a.id;
       const isFocus=a.id===focusId&&mode==='focus';
       const p=getPos(a);const tc=nodeColor(a);const hc=this.healthColor(a.health);
@@ -2370,7 +2372,7 @@ class Component extends DCLogic {
 
     // ── minimap ───────────────────────────────────────────────────────────
     const mmW=164,mmH=108,mmPad=12;
-    const allPos=this.agents.map(a=>getPos(a));
+    const allPos=_mapAgents.map(a=>getPos(a));
     const mmXs=allPos.map(p=>p.x),mmYs=allPos.map(p=>p.y);
     const mmMinX=Math.min(...mmXs)-mmPad,mmMinY=Math.min(...mmYs)-mmPad;
     const mmBBW=Math.max(...mmXs)+NW+mmPad-mmMinX,mmBBH=Math.max(...mmYs)+NH+mmPad-mmMinY;
@@ -2398,7 +2400,7 @@ class Component extends DCLogic {
         this.setState({wfPanX:cWe/2-vx*zoom,wfPanY:cHe/2-vy*zoom}); }},
       h('svg',{width:mmW,height:mmH-14,style:{display:'block'}},
         // agent rects
-        ...this.agents.map(a=>{ const [mx,my]=toMM(getPos(a).x,getPos(a).y);
+        ..._mapAgents.map(a=>{ const [mx,my]=toMM(getPos(a).x,getPos(a).y);
           const tc=nodeColor(a);const isF=a.id===focusId&&mode==='focus';
           const rw=Math.max(2,NW*mmScale),rh=Math.max(1.5,NH*mmScale);
           return h('rect',{key:a.id,x:mx,y:my,width:rw,height:rh,rx:1,
@@ -2881,7 +2883,7 @@ class Component extends DCLogic {
     });
     // Detect agents sharing the same trigger event that aren't already in a conflict pair
     const byTrigger=new Map();
-    this.agents.forEach(a=>{ if(!byTrigger.has(a.evt)) byTrigger.set(a.evt,[]); byTrigger.get(a.evt).push(a); });
+    (this.nwlAgents||this.agents).forEach(a=>{ if(!byTrigger.has(a.evt)) byTrigger.set(a.evt,[]); byTrigger.get(a.evt).push(a); });
     const proactive=[...byTrigger.entries()].filter(([evt,as])=>as.length>1&&!byEvt.has(evt));
     const clusters=[...byEvt.entries()].map(([evt,cfs])=>{
       const agentIds=[...new Set(cfs.flatMap(c=>[c.a,c.b]))];
@@ -2932,7 +2934,7 @@ class Component extends DCLogic {
     const strokeMap={Tender:'#1a3270',Rating:'#1e56e0',Compliance:'#C07B0A',Document:'#7E8CA8',Invoice:'#A05EAF',AI:'#7048B8',Tracking:'#3B82C4'};
     let idC=10;
     const cells=['<mxCell id="0"/>','<mxCell id="1" parent="0"/>'];
-    this.agents.forEach(a=>{
+    (this.nwlAgents||this.agents).forEach(a=>{
       const fill=fillMap[a.type]||'#FFFFFF'; const stroke=strokeMap[a.type]||'#E5E3E0';
       const label=esc(a.name)+'&#xa;'+esc(a.evt)+'&#xa;'+esc(a.version+' · '+a.success.toFixed(1)+'%');
       const style=`rounded=1;whiteSpace=wrap;fillColor=${fill};strokeColor=${stroke};fontFamily=Inter;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=6;`;
@@ -3049,7 +3051,8 @@ class Component extends DCLogic {
     const sMap={Tender:'#1a3270',Rating:'#1e56e0',Compliance:'#C07B0A',Document:'#7E8CA8',Invoice:'#A05EAF',AI:'#7048B8',Tracking:'#3B82C4'};
     const hCol={green:'#1E7F5A',amber:'#B86E00',red:'#C74634'};
     const ep=(a,b,bow)=>{bow=bow||0;const ax=a.gx+95,ay=a.gy+44,bx=b.gx+95,by=b.gy+44,mx=(ax+bx)/2,my=(ay+by)/2,dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,cx=mx+nx*bow,cy=my+ny*bow;return 'M'+ax+' '+ay+' Q'+cx+' '+cy+' '+bx+' '+by;};
-    const xs=this.agents.map(a=>a.gx),ys=this.agents.map(a=>a.gy);
+    const _pdfAgents=this.nwlAgents||this.agents;
+    const xs=_pdfAgents.map(a=>a.gx),ys=_pdfAgents.map(a=>a.gy);
     const svgMinX=Math.min(...xs)-30,svgMinY=Math.min(...ys)-30,svgMaxX=Math.max(...xs)+220,svgMaxY=Math.max(...ys)+120;
     const vbW=svgMaxX-svgMinX,vbH=svgMaxY-svgMinY;
     const mkArr=(id,col)=>'<marker id="'+id+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="'+col+'"/></marker>';
@@ -3058,7 +3061,7 @@ class Component extends DCLogic {
     this.flowEdges.forEach(e=>{const a=this.byId(e[0]),b=this.byId(e[1]);if(a&&b)svgParts.push('<path d="'+ep(a,b)+'" fill="none" stroke="#1e56e0" stroke-width="2" stroke-linecap="round" marker-end="url(#dat)"/>');}); 
     this.aiEdges.forEach(e=>{const a=this.byId(e[0]),b=this.byId(e[1]);if(a&&b)svgParts.push('<path d="'+ep(a,b)+'" fill="none" stroke="#7048B8" stroke-width="2" stroke-dasharray="4 6" stroke-linecap="round" marker-end="url(#dap)"/>');}); 
     this.conflicts.forEach(c=>{const a=this.byId(c.a),b=this.byId(c.b);if(a&&b){const col=c.severity==='critical'?'#C74634':'#B86E00';svgParts.push('<path d="'+ep(a,b,38)+'" fill="none" stroke="'+col+'" stroke-width="1.5" stroke-dasharray="5 4" stroke-linecap="round" marker-end="url(#'+(c.severity==='critical'?'dar':'daa')+')"/>');}});
-    this.agents.forEach(a=>{
+    _pdfAgents.forEach(a=>{
       const fill=fMap[a.type]||'#FFFFFF',stroke=sMap[a.type]||'#CCCCCC',hc=hCol[a.health]||'#999';
       const nm=a.name.length>22?a.name.slice(0,21)+'\u2026':a.name;
       svgParts.push(
@@ -3078,7 +3081,7 @@ class Component extends DCLogic {
     // ── draw.io XML embedded as data-URI download ──────────────────────────
     const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     const dxCells=['<mxCell id="0"/>','<mxCell id="1" parent="0"/>'];
-    this.agents.forEach(a=>{
+    _pdfAgents.forEach(a=>{
       const fill=fMap[a.type]||'#FFFFFF',stroke=sMap[a.type]||'#CCCCCC';
       const label=xe(a.name)+'&#xa;'+xe(a.evt)+'&#xa;'+xe((a.version||'')+' \u00b7 '+a.success.toFixed(1)+'%');
       const style='rounded=1;whiteSpace=wrap;fillColor='+fill+';strokeColor='+stroke+';fontFamily=Inter;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=6;';
