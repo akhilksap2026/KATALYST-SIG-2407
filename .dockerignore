@@ -1,0 +1,35 @@
+# ── Version control ───────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Replit-specific ───────────────────────────────────────────────────────────
+.replit
+replit.nix
+.cache
+.upm
+.local
+.agents
+.thumbnail
+
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_modules
+npm-debug.log*
+
+# ── Dev / test artefacts ─────────────────────────────────────────────────────
+tests/
+screenshots/
+*.py
+seed.py
+server.py
+main.py
+zipFile.zip
+
+# ── Docs & generated assets (not needed at runtime) ──────────────────────────
+*.md
+replit.md
+attached_assets/*.docx
+attached_assets/*.md
+attached_assets/image_*
+
+# ── Generated / temp files ────────────────────────────────────────────────────
+scripts/gen_marketing_doc.js
