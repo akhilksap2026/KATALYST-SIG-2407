@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "W_TgMuFEVASutNSFHwCJE"
+uri = "file://attached_assets/Katalyst_Marketing_Brief.docx"
+type = "word_document"
+title = "Katalyst — 2-Page Marketing Brief"
