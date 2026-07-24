@@ -34,8 +34,8 @@ async function q(sql, params) {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 async function insertAgent(a) {
-  await q(`INSERT INTO agents(id,name,domain,type,version,owner,trigger_name,evt,priority,success_rate,health,gx,gy)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(id) DO NOTHING`,
+  await q(`INSERT INTO agents(agent_gid,agent_xid,domain_name,data_query_type_gid,version,owner,trigger_name,evt,priority,success_rate,health,gx,gy)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(agent_gid) DO NOTHING`,
     [a.id,a.name,a.domain,a.type,a.version,a.owner,a.trigger_name,a.evt,
      a.priority,a.success_rate,a.health,a.gx,a.gy]);
 }
@@ -65,11 +65,11 @@ async function insertConditions(agentId, texts) {
 }
 
 async function insertActions(agentId, texts) {
-  const existing = await q('SELECT action_text FROM agent_actions WHERE agent_id=$1',[agentId]);
-  const have = new Set(existing.map(r=>r.action_text));
+  const existing = await q('SELECT action_gid FROM agent_actions WHERE agent_gid=$1 AND (action_flow IS NULL OR action_flow=\'NORMAL\')',[agentId]);
+  const have = new Set(existing.map(r=>r.action_gid));
   for (let i=0;i<texts.length;i++)
     if (!have.has(texts[i]))
-      await q('INSERT INTO agent_actions(agent_id,action_text,sort_order) VALUES($1,$2,$3)',[agentId,texts[i],i]);
+      await q('INSERT INTO agent_actions(agent_gid,action_gid,action_sequence,action_flow) VALUES($1,$2,$3,\'NORMAL\')',[agentId,texts[i],i]);
 }
 
 async function insertEdge(from, to, type) {

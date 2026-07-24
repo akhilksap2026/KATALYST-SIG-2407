@@ -1480,6 +1480,155 @@ async function autoSeedAnnotationsIfEmpty() {
   }
 }
 
+// ─── SKYMFG SEED ─────────────────────────────────────────────────────────────
+// Seeds tenants, domains, agents, agent_events, and external_systems for the
+// SkyMFG tenant. Safe to re-run: guarded by a row-count check.
+
+async function autoSeedSkymfgIfEmpty() {
+  try {
+    const check = await query(`SELECT COUNT(*) AS n FROM domains WHERE tenant_id='SKYMFG'`);
+    if (parseInt(check[0].n) > 0) return;
+    console.log('[seed] Seeding SkyMFG tenant data…');
+
+    // ── 1. Tenants ─────────────────────────────────────────────────────────
+    await query(`INSERT INTO tenants(tenant_id,tenant_name,otm_instance_url,otm_version,description)
+      VALUES('NWL','Northwind Logistics','https://otm26b.nwl.oraclecloud.com','OTM 26B','Primary NWL production tenant')
+      ON CONFLICT(tenant_id) DO NOTHING`);
+    await query(`INSERT INTO tenants(tenant_id,tenant_name,otm_instance_url,otm_version,description)
+      VALUES('SKYMFG','SkyMFG Corporation','https://otm26b.skymfg.oraclecloud.com','OTM 26B','SkyMFG manufacturing & distribution tenant')
+      ON CONFLICT(tenant_id) DO NOTHING`);
+
+    // ── 2. Domains ─────────────────────────────────────────────────────────
+    const domains = [
+      { domain_name:'SKYMFG/ORDER',    display_label:'Order Management',     description:'Order entry, validation, and release workflows',          environment_type:'Production', theme_color:'#3b82f6', agent_count:28 },
+      { domain_name:'SKYMFG/SHIP',     display_label:'Shipment Execution',   description:'Carrier selection, tendering, and shipment tracking',      environment_type:'Production', theme_color:'#10b981', agent_count:34 },
+      { domain_name:'SKYMFG/RAIL',     display_label:'Rail Transport',       description:'Rail car ordering, loading, and transit management',        environment_type:'Production', theme_color:'#8b5cf6', agent_count:22 },
+      { domain_name:'SKYMFG/INV',      display_label:'Inventory Control',    description:'Inventory allocation, replenishment, and cycle counting',   environment_type:'Production', theme_color:'#f59e0b', agent_count:19 },
+      { domain_name:'SKYMFG/FIN',      display_label:'Finance & Settlement', description:'Invoice matching, accruals, and freight cost settlement',   environment_type:'Production', theme_color:'#ef4444', agent_count:25 },
+      { domain_name:'SKYMFG/COMP',     display_label:'Compliance & Customs', description:'Trade compliance, export licensing, and sanctions checks',  environment_type:'Production', theme_color:'#6b7280', agent_count:17 },
+    ];
+    for (const d of domains)
+      await query(`INSERT INTO domains(domain_name,tenant_id,display_label,description,environment_type,theme_color,agent_count)
+        VALUES($1,'SKYMFG',$2,$3,$4,$5,$6) ON CONFLICT(domain_name) DO NOTHING`,
+        [d.domain_name, d.display_label, d.description, d.environment_type, d.theme_color, d.agent_count]);
+
+    // ── 3. External systems ────────────────────────────────────────────────
+    const extSystems = ['SKYMFG/SAP-ERP','SKYMFG/EDI-X12','SKYMFG/RAIL-API','SKYMFG/CUSTOMS-ACE','SKYMFG/WMS-CORE'];
+    for (const gid of extSystems)
+      await query(`INSERT INTO external_systems(external_system_gid) VALUES($1) ON CONFLICT DO NOTHING`, [gid]);
+
+    // ── 4. Agents ──────────────────────────────────────────────────────────
+    const agents = [
+      // ORDER domain
+      { gid:'SKYMFG/ORD-VALIDATOR',   xid:'Order Entry Validator',        dom:'SKYMFG/ORDER', dqt:'Compliance', ver:'v2.1.0', owner:'t.hayes',    evt:'ORDER_ENTERED',       priority:'Critical', success:99.4, health:'green', gx:100, gy:100,
+        reads:['ORDER_RELEASE_GID','SHIP_FROM_GID','SHIP_TO_GID','SERVICE_LEVEL_GID','TOTAL_WEIGHT_KG'],
+        writes:['ORDER_VALIDATION_STATUS','VALIDATION_ERROR_CODE'],
+        actions:['VALIDATE ORDER RELEASE // SHIP_FROM_GID · SHIP_TO_GID','CHECK SERVICE LEVEL // SERVICE_LEVEL_GID','VALIDATE WEIGHT LIMITS // TOTAL_WEIGHT_KG','SET STATUS ORDER_VALIDATION_STATUS = VALID','EMIT EVENT ORDER_VALIDATED // ORDER_RELEASE_GID'],
+        events:['ORDER_VALIDATED'] },
+      { gid:'SKYMFG/ORD-CREDITCHECK', xid:'Credit Limit Checker',         dom:'SKYMFG/ORDER', dqt:'Compliance', ver:'v1.3.2', owner:'t.hayes',    evt:'ORDER_VALIDATED',     priority:'Critical', success:98.9, health:'green', gx:100, gy:250,
+        reads:['CUSTOMER_GID','ORDER_VALUE','CREDIT_LIMIT','OUTSTANDING_AR'],
+        writes:['CREDIT_STATUS','HOLD_FLAG'],
+        actions:['LOAD CUSTOMER CREDIT PROFILE // CUSTOMER_GID','EVALUATE CREDIT LIMIT // ORDER_VALUE vs CREDIT_LIMIT','SET FIELD HOLD_FLAG // if credit exceeded','NOTIFY CREDIT TEAM // CUSTOMER_GID · ORDER_VALUE'],
+        events:[] },
+      { gid:'SKYMFG/ORD-RATEENGINE',  xid:'Rate Calculation Engine',      dom:'SKYMFG/ORDER', dqt:'Rating',     ver:'v3.4.1', owner:'r.brooks',   evt:'ORDER_VALIDATED',     priority:'High',     success:97.2, health:'green', gx:100, gy:400,
+        reads:['ORDER_RELEASE_GID','SHIP_FROM_GID','SHIP_TO_GID','SERVICE_LEVEL_GID','TOTAL_WEIGHT_KG','LANE_GID'],
+        writes:['RATE_GID','ESTIMATED_COST','SERVICE_GID'],
+        actions:['RECALCULATE RATES // LANE_GID · SERVICE_LEVEL_GID','SELECT CHEAPEST PROVIDER // RATE_GID','SET FIELD ESTIMATED_COST // from rate engine','EMIT EVENT RATE_APPLIED // ORDER_RELEASE_GID'],
+        events:['RATE_APPLIED'] },
+      { gid:'SKYMFG/ORD-EXPORTLIC',   xid:'Export License Checker',       dom:'SKYMFG/ORDER', dqt:'Compliance', ver:'v2.0.3', owner:'c.morales',  evt:'ORDER_VALIDATED',     priority:'Critical', success:99.8, health:'green', gx:100, gy:550,
+        reads:['COMMODITY_GID','DEST_COUNTRY_CODE','EXPORT_CLASS_CODE'],
+        writes:['EXPORT_LICENSE_STATUS','ECC_NUMBER'],
+        actions:['CHECK ECCN // COMMODITY_GID · EXPORT_CLASS_CODE','QUERY DENIED PARTIES // DEST_COUNTRY_CODE','VALIDATE LICENSE REQUIRED // ECC_NUMBER','SET STATUS EXPORT_LICENSE_STATUS = CLEARED'],
+        events:[] },
+      // SHIP domain
+      { gid:'SKYMFG/SHIP-AUTOTENDER', xid:'Auto-Tender Dispatcher',       dom:'SKYMFG/SHIP',  dqt:'Tender',     ver:'v4.1.0', owner:'m.fujita',   evt:'SHIPMENT_PLANNED',    priority:'Critical', success:97.8, health:'green', gx:380, gy:100,
+        reads:['SHIPMENT_GID','CARRIER_POOL_GID','RATE_GID','EQUIPMENT_TYPE_GID'],
+        writes:['TENDER_GID','TENDER_STATUS','CARRIER_GID'],
+        actions:['SELECT CARRIER // CARRIER_POOL_GID · RATE_GID','BUILD TENDER PAYLOAD // SHIPMENT_GID · CARRIER_GID','SEND TENDER // to CARRIER_GID','SET STATUS TENDER_STATUS = SENT','SCHEDULE TIMEOUT // 45s'],
+        events:['TENDER_SENT'] },
+      { gid:'SKYMFG/SHIP-TENDERRESP', xid:'Tender Response Processor',    dom:'SKYMFG/SHIP',  dqt:'Tender',     ver:'v3.2.1', owner:'m.fujita',   evt:'TENDER_RESPONSE_RCVD',priority:'High',     success:99.1, health:'green', gx:380, gy:250,
+        reads:['TENDER_GID','CARRIER_GID','RESPONSE_CODE'],
+        writes:['SHIPMENT_STATUS','TENDER_STATUS'],
+        actions:['VALIDATE TENDER RESPONSE // TENDER_GID · RESPONSE_CODE','onAccept → SET STATUS SHIPMENT_STATUS = CONFIRMED','onDecline → RAISE EVENT TENDER_DECLINED','LOG CARRIER RESPONSE // CARRIER_GID · RESPONSE_CODE'],
+        events:['SHIPMENT_CONFIRMED','TENDER_DECLINED'] },
+      { gid:'SKYMFG/SHIP-TRACKING',   xid:'Shipment Track & Trace',       dom:'SKYMFG/SHIP',  dqt:'Tracking',   ver:'v2.8.0', owner:'l.price',    evt:'SHIPMENT_CONFIRMED',  priority:'Medium',   success:96.1, health:'green', gx:380, gy:400,
+        reads:['SHIPMENT_GID','CARRIER_GID','TRACKING_NUMBER'],
+        writes:['SHIPMENT_STATUS','MILESTONE_LOG','ETA_TIMESTAMP'],
+        actions:['SUBSCRIBE TRACKING FEED // CARRIER_GID · SHIPMENT_GID','MAP CARRIER_STATUS → OTM_STATUS','UPDATE MILESTONE // MILESTONE_CODE · EVENT_TIMESTAMP','NOTIFY CUSTOMER // CUSTOMER_GID · ETA_TIMESTAMP'],
+        events:[] },
+      { gid:'SKYMFG/SHIP-RETENDER',   xid:'Re-Tender on Decline',         dom:'SKYMFG/SHIP',  dqt:'Tender',     ver:'v1.9.2', owner:'m.fujita',   evt:'TENDER_DECLINED',     priority:'High',     success:94.3, health:'amber', gx:380, gy:550,
+        reads:['TENDER_GID','TENDER_STATUS','RETENDER_COUNT','ALT_CARRIER_POOL'],
+        writes:['TENDER_STATUS','CARRIER_GID','RETENDER_COUNT'],
+        actions:['INCREMENT COUNTER RETENDER_COUNT','EXCLUDE CARRIER // from pool','SELECT NEXT CARRIER // ALT_CARRIER_POOL','BUILD NEW TENDER // SHIPMENT_GID · new CARRIER_GID','SEND TENDER // to new carrier'],
+        events:[] },
+      // RAIL domain
+      { gid:'SKYMFG/RAIL-CARORDER',   xid:'Rail Car Order Manager',       dom:'SKYMFG/RAIL',  dqt:'Planning',   ver:'v3.0.1', owner:'p.davidson',  evt:'RAIL_CAR_REQUEST',   priority:'High',     success:96.7, health:'green', gx:660, gy:100,
+        reads:['RAIL_CAR_TYPE_GID','ORIGIN_LOCATION_GID','DEST_LOCATION_GID','LOAD_DATE'],
+        writes:['CAR_ORDER_GID','CAR_ORDER_STATUS'],
+        actions:['VALIDATE CAR TYPE // RAIL_CAR_TYPE_GID','CHECK CAR AVAILABILITY // ORIGIN_LOCATION_GID · LOAD_DATE','SUBMIT CAR ORDER // to railroad','SET STATUS CAR_ORDER_STATUS = SUBMITTED'],
+        events:['CAR_ORDER_PLACED'] },
+      { gid:'SKYMFG/RAIL-LOADPLAN',   xid:'Rail Load Planner',            dom:'SKYMFG/RAIL',  dqt:'Planning',   ver:'v2.2.0', owner:'p.davidson',  evt:'CAR_ORDER_PLACED',   priority:'High',     success:95.4, health:'green', gx:660, gy:250,
+        reads:['CAR_ORDER_GID','PRODUCT_GID','WEIGHT_KG','VOLUME_CBM'],
+        writes:['LOAD_PLAN_GID','LOAD_STATUS'],
+        actions:['CALCULATE LOAD DISTRIBUTION // WEIGHT_KG · VOLUME_CBM','ASSIGN PRODUCTS TO CAR // PRODUCT_GID','VALIDATE WEIGHT LIMITS // per rail car spec','EMIT EVENT LOAD_PLAN_READY // CAR_ORDER_GID'],
+        events:['LOAD_PLAN_READY'] },
+      { gid:'SKYMFG/RAIL-ARRIVAL',    xid:'Rail Arrival Processor',       dom:'SKYMFG/RAIL',  dqt:'Tracking',   ver:'v1.7.3', owner:'p.davidson',  evt:'RAIL_CAR_ARRIVED',   priority:'Medium',   success:98.2, health:'green', gx:660, gy:400,
+        reads:['CAR_ORDER_GID','ARRIVAL_LOCATION_GID','ARRIVAL_TIMESTAMP'],
+        writes:['CAR_ORDER_STATUS','ACTUAL_ARRIVAL_TS'],
+        actions:['RECORD ARRIVAL // CAR_ORDER_GID · ARRIVAL_TIMESTAMP','UPDATE CAR_ORDER_STATUS = ARRIVED','TRIGGER UNLOAD PROCESS // LOAD_PLAN_GID','NOTIFY WAREHOUSE // ARRIVAL_LOCATION_GID'],
+        events:[] },
+      // INV domain
+      { gid:'SKYMFG/INV-ALLOC',       xid:'Inventory Allocator',          dom:'SKYMFG/INV',   dqt:'Planning',   ver:'v2.5.0', owner:'s.osei',      evt:'ORDER_VALIDATED',    priority:'High',     success:97.9, health:'green', gx:940, gy:100,
+        reads:['ORDER_RELEASE_GID','PRODUCT_GID','QUANTITY','WAREHOUSE_GID'],
+        writes:['ALLOC_STATUS','RESERVED_QTY','ALLOC_WAREHOUSE_GID'],
+        actions:['CHECK AVAILABLE INVENTORY // PRODUCT_GID · WAREHOUSE_GID','RESERVE QUANTITY // QUANTITY','SET ALLOC_STATUS = RESERVED','EMIT EVENT INVENTORY_ALLOCATED // ORDER_RELEASE_GID'],
+        events:['INVENTORY_ALLOCATED'] },
+      { gid:'SKYMFG/INV-REPLENISH',   xid:'Replenishment Trigger',        dom:'SKYMFG/INV',   dqt:'Planning',   ver:'v1.4.1', owner:'s.osei',      evt:'INVENTORY_LOW',      priority:'Medium',   success:95.6, health:'amber', gx:940, gy:250,
+        reads:['PRODUCT_GID','WAREHOUSE_GID','ON_HAND_QTY','REORDER_POINT'],
+        writes:['REPLENISHMENT_ORDER_GID','REPLENISH_STATUS'],
+        actions:['CHECK REORDER POINT // ON_HAND_QTY vs REORDER_POINT','CALCULATE REPLENISH QTY // based on EOQ formula','CREATE REPLENISHMENT ORDER // PRODUCT_GID · WAREHOUSE_GID','NOTIFY PROCUREMENT // REPLENISHMENT_ORDER_GID'],
+        events:[] },
+      // FIN domain
+      { gid:'SKYMFG/FIN-INVOICEMATCH',xid:'Invoice Auto-Matcher',         dom:'SKYMFG/FIN',   dqt:'Invoice',    ver:'v3.1.2', owner:'k.yamamoto',  evt:'INVOICE_RECEIVED',   priority:'High',     success:96.8, health:'green', gx:1220, gy:100,
+        reads:['INVOICE_GID','SHIPMENT_GID','INVOICE_AMOUNT','CONTRACT_RATE'],
+        writes:['MATCH_STATUS','VARIANCE_AMOUNT','INVOICE_STATUS'],
+        actions:['MATCH INVOICE TO SHIPMENT // INVOICE_GID · SHIPMENT_GID','COMPARE RATES // INVOICE_AMOUNT vs CONTRACT_RATE','COMPUTE VARIANCE // INVOICE_AMOUNT minus CONTRACT_RATE','SET STATUS INVOICE_STATUS = MATCHED OR DISPUTE'],
+        events:['INVOICE_MATCHED','INVOICE_DISPUTE'] },
+      { gid:'SKYMFG/FIN-ACCRUAL',     xid:'Freight Cost Accrual Agent',   dom:'SKYMFG/FIN',   dqt:'Finance',    ver:'v1.2.0', owner:'k.yamamoto',  evt:'SHIPMENT_CONFIRMED', priority:'Medium',   success:99.1, health:'green', gx:1220, gy:250,
+        reads:['SHIPMENT_GID','ESTIMATED_COST','COST_CENTER_GID'],
+        writes:['ACCRUAL_GID','ACCRUAL_STATUS'],
+        actions:['CALCULATE ACCRUAL // ESTIMATED_COST · COST_CENTER_GID','POST ACCRUAL JOURNAL // to SAP-ERP','SET STATUS ACCRUAL_STATUS = POSTED','EMIT EVENT ACCRUAL_POSTED // SHIPMENT_GID'],
+        events:['ACCRUAL_POSTED'] },
+      // COMP domain
+      { gid:'SKYMFG/COMP-SANCTIONS',  xid:'Sanctions & Denied Party Screener', dom:'SKYMFG/COMP', dqt:'Compliance', ver:'v4.0.2', owner:'c.morales', evt:'ORDER_VALIDATED',   priority:'Critical', success:99.9, health:'green', gx:1500, gy:100,
+        reads:['CUSTOMER_GID','DEST_COUNTRY_CODE','SHIPPER_PARTY_GID'],
+        writes:['SANCTIONS_STATUS','DENIED_PARTY_FLAG'],
+        actions:['SCREEN CUSTOMER // against OFAC watchlist','SCREEN SHIPPER PARTY // SHIPPER_PARTY_GID','CHECK COUNTRY RESTRICTIONS // DEST_COUNTRY_CODE','SET STATUS SANCTIONS_STATUS = CLEARED OR BLOCKED','NOTIFY COMPLIANCE OFFICER // if blocked'],
+        events:[] },
+      { gid:'SKYMFG/COMP-HAZMAT',     xid:'HAZMAT Classification Validator', dom:'SKYMFG/COMP', dqt:'Compliance', ver:'v2.3.1', owner:'c.morales',  evt:'ORDER_VALIDATED',   priority:'Critical', success:99.7, health:'green', gx:1500, gy:250,
+        reads:['COMMODITY_GID','HAZMAT_CLASS_CODE','HAZMAT_CERT_GID','TRANSPORT_MODE'],
+        writes:['HAZMAT_STATUS','REQUIRED_PLACARDS'],
+        actions:['VALIDATE HAZMAT CLASS // HAZMAT_CLASS_CODE','CHECK CERT EXPIRY // HAZMAT_CERT_GID','DETERMINE PLACARDS // HAZMAT_CLASS_CODE · TRANSPORT_MODE','SET STATUS HAZMAT_STATUS = COMPLIANT'],
+        events:[] },
+    ];
+
+    for (const a of agents) {
+      await query(`INSERT INTO agents(agent_gid,agent_xid,domain_name,data_query_type_gid,version,owner,evt,priority,success_rate,health,gx,gy,is_active,norm_action_count,event_count,complexity_score)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,true,$13,$14,$15) ON CONFLICT(agent_gid) DO NOTHING`,
+        [a.gid, a.xid, a.dom, a.dqt, a.ver, a.owner, a.evt, a.priority, a.success, a.health, a.gx, a.gy,
+         a.actions.length, a.events.length, parseFloat((a.actions.length * 0.8 + a.reads.length * 0.4 + a.writes.length * 0.6).toFixed(1))]);
+      for (let i=0;i<a.reads.length;i++)   await query(`INSERT INTO agent_reads(agent_id,field_name,sort_order) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[a.gid,a.reads[i],i]);
+      for (let i=0;i<a.writes.length;i++)  await query(`INSERT INTO agent_writes(agent_id,field_name,sort_order) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[a.gid,a.writes[i],i]);
+      for (let i=0;i<a.actions.length;i++) await query(`INSERT INTO agent_actions(agent_gid,action_gid,action_sequence,action_flow) VALUES($1,$2,$3,'NORMAL') ON CONFLICT DO NOTHING`,[a.gid,a.actions[i],i]);
+      for (const ev of a.events)           await query(`INSERT INTO agent_events(agent_gid,event_gid) VALUES($1,$2) ON CONFLICT DO NOTHING`,[a.gid,ev]);
+    }
+
+    console.log('[seed] SkyMFG tenant seeded (' + agents.length + ' agents, ' + domains.length + ' domains).');
+  } catch (err) {
+    console.error('[seed] SkyMFG seed failed:', err.message);
+  }
+}
+
 // Start listening first (Cloud Run health check), then migrate + seed in the background.
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Katalyst API running on port ${PORT}`);
@@ -1491,5 +1640,6 @@ app.listen(PORT, '0.0.0.0', () => {
     .then(() => autoSeedDiffsIfEmpty())
     .then(() => autoSeedSnapshotsIfEmpty())
     .then(() => autoSeedAnnotationsIfEmpty())
+    .then(() => autoSeedSkymfgIfEmpty())
     .catch(err => console.error('[seed] Background seed error:', err.message));
 });

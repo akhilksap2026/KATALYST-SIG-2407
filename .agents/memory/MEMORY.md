@@ -10,3 +10,4 @@
 - [Database enrichment](db-enrichment.md) — 44 OTM agents across 6 domains; scripts/enrich.js is additive enrichment runner (safe to re-run); overview_metrics must be refreshed manually after agent changes.
 - [Event Ordering screen](event-ordering-screen.md) — "Conflicts" renamed to "Event Ordering"; each conflict has seq diagram, priority fix panel, and gate modal; three new helper methods added.
 - [SkyMFG UI screens](skymfg-ui.md) — Step 3 complete: 4 screens (Overview/Map/List/Workbench) + 4 API routes; post-migration column rename fixes documented.
+- [E2E test findings](e2e-findings.md) — enrich.js column names fixed; SkyMFG seed added to api.js autoSeedSkymfgIfEmpty(); all 15 endpoints and 12 screens verified.
