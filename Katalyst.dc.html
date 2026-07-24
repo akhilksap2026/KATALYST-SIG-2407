@@ -6603,16 +6603,26 @@ class Component extends DCLogic {
     const edges=g.edges||[],nodes=g.nodes||[];
     const causalEdges=edges.filter(e=>CAUSAL.includes(e.link_type));
 
+    // Agent meta lookup (version + functional_categories from loaded agents list)
+    const agentMeta={};
+    (this.skymfgAgents||[]).forEach(a=>{
+      agentMeta[a.agent_gid]={
+        otm_release:a.otm_release,
+        functional_categories:a.functional_categories,
+        is_active:a.is_active,
+      };
+    });
+
     // Build causal adjacency for layout
     const outE={},inE={};
     causalEdges.forEach(e=>{(outE[e.source]=outE[e.source]||[]).push(e.target);(inE[e.target]=inE[e.target]||[]).push(e.source);});
 
-    // Partition: connected (appear in any displayed edge) vs isolated
+    // Partition: connected vs isolated
     const linkedGids=new Set(edges.flatMap(e=>[e.source,e.target]));
     const linkedNodes=nodes.filter(n=>linkedGids.has(n.agent_gid));
     const isolatedNodes=nodes.filter(n=>!linkedGids.has(n.agent_gid));
 
-    // BFS layer assignment from source nodes (no inbound causal)
+    // BFS layer assignment
     const layer={};
     const roots=linkedNodes.filter(n=>!inE[n.agent_gid]);
     if(!roots.length&&linkedNodes.length) roots.push(linkedNodes[0]);
@@ -6622,21 +6632,30 @@ class Component extends DCLogic {
     while(bi<bq.length){const{id,d}=bq[bi++];if(d>=5)continue;(outE[id]||[]).forEach(t=>{if(layer[t]===undefined||layer[t]<d+1){layer[t]=d+1;bq.push({id:t,d:d+1});}});}
     linkedNodes.forEach(n=>{if(layer[n.agent_gid]===undefined)layer[n.agent_gid]=0;});
 
-    // Group by layer, stable alphabetical within column
+    // Group by layer, sort alphabetically within column
     const byLayer={};
     linkedNodes.forEach(n=>{const l=layer[n.agent_gid]||0;(byLayer[l]=byLayer[l]||[]).push(n);});
     const COLS=Object.keys(byLayer).map(Number).sort((a,b)=>a-b);
     COLS.forEach(col=>{byLayer[col].sort((a,b)=>a.agent_xid.localeCompare(b.agent_xid));});
 
-    // Compute pixel positions
-    const NW=192,NH=66,COL_W=240,ROW_H=86,PX=20,PY=16;
+    // Pixel layout
+    const NW=210,NH=92,COL_W=256,ROW_H=108,PX=20,PY=44;
     const colX={};COLS.forEach((col,i)=>{colX[col]=PX+i*COL_W;});
     const npos={};COLS.forEach(col=>{byLayer[col].forEach((n,i)=>{npos[n.agent_gid]={x:colX[col],y:PY+i*ROW_H};});});
     const maxRows=Math.max(...COLS.map(c=>byLayer[c].length),1);
-    const totalH=PY*2+maxRows*ROW_H,totalW=PX*2+COLS.length*COL_W;
+    const totalH=PY+maxRows*ROW_H+PX,totalW=PX*2+COLS.length*COL_W;
+
+    // Domain header positions: group linked nodes by domain, find min-y and min-x
+    const domHdrs={};
+    linkedNodes.forEach(n=>{
+      const pos=npos[n.agent_gid];if(!pos)return;
+      const dn=n.domain_name||'';
+      if(!domHdrs[dn]||pos.x<domHdrs[dn].x||(pos.x===domHdrs[dn].x&&pos.y<domHdrs[dn].y))
+        domHdrs[dn]={x:pos.x,y:pos.y,color:this.smDomainColor(dn),label:(dn||'').replace('SKYMFG/','').replace('SKYMFG','SkyMFG Root')};
+    });
 
     // Hover highlight sets
-    const hovIdx=hov?new Set(edges.reduce((a,e,i)=>{if(e.source===hov||e.target===hov)a.push(i);return a;},[])):[null][0];
+    const hovEdgeSet=hov?new Set(edges.reduce((a,e,i)=>{if(e.source===hov||e.target===hov)a.push(i);return a;},[])):[null][0];
     const hovPeers=hov?new Set(edges.filter(e=>e.source===hov||e.target===hov).flatMap(e=>[e.source,e.target])):null;
 
     // Tier toggle
@@ -6661,9 +6680,15 @@ class Component extends DCLogic {
       // Graph viewport
       linkedNodes.length
         ?h('div',{style:{flex:1,overflowX:'auto',overflowY:'auto',border:'1px solid '+C.border,
-            borderRadius:8,background:C.panel2+'80',position:'relative',minHeight:0}},
+            borderRadius:8,background:'#FAFAF9',position:'relative',minHeight:0}},
           h('div',{style:{position:'relative',width:Math.max(totalW,400),height:Math.max(totalH,200),minWidth:'100%'}},
-            // SVG edge + arrowhead overlay
+            // Domain section headers
+            ...Object.entries(domHdrs).map(([dn,dh])=>
+              h('div',{key:'dh-'+dn,style:{position:'absolute',left:dh.x,top:dh.y-28,
+                fontSize:9.5,fontWeight:800,color:dh.color,textTransform:'uppercase',
+                letterSpacing:'.6px',whiteSpace:'nowrap',userSelect:'none',
+                background:'#FAFAF9',paddingRight:6}},dh.label)),
+            // SVG edge layer
             h('svg',{style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',overflow:'visible'}},
               h('defs',{},
                 ...Object.entries(LS).map(([lt,s])=>
@@ -6672,37 +6697,90 @@ class Component extends DCLogic {
               ...edges.map((e,i)=>{
                 const sp=npos[e.source],tp=npos[e.target];if(!sp||!tp)return null;
                 const s=LS[e.link_type]||{color:'#888',dash:null};
-                const x1=sp.x+NW,y1=sp.y+NH/2,x2=tp.x,y2=tp.y+NH/2,mx=(x1+x2)/2;
-                const dim=hovIdx&&!hovIdx.has(i);
-                const lbl=e.link_detail&&!dim?(e.link_detail.length>26?e.link_detail.slice(0,26)+'…':e.link_detail):null;
+                const CAUSAL_E=CAUSAL.includes(e.link_type);
+                // Exit right-center of source, enter left-center of target
+                const x1=sp.x+NW,y1=sp.y+NH/2,x2=tp.x,y2=tp.y+NH/2;
+                const dx=Math.abs(x2-x1),cpx=Math.min(dx*0.5,80);
+                const mx=(x1+x2)/2,my=(y1+y2)/2;
+                const isDimEdge=hovEdgeSet&&!hovEdgeSet.has(i);
+                const lblTxt=e.link_detail?(e.link_detail.length>20?e.link_detail.slice(0,20)+'…':e.link_detail):null;
                 return h(React.Fragment,{key:i},
-                  h('path',{d:'M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2,
-                    fill:'none',stroke:s.color,strokeWidth:dim?0.7:1.8,opacity:dim?0.08:0.82,
-                    strokeDasharray:s.dash||null,markerEnd:'url(#arrm-'+e.link_type+')'}),
-                  lbl?h('text',{x:(x1+x2)/2,y:(y1+y2)/2-5,textAnchor:'middle',fontSize:8,
-                    fill:s.color,opacity:0.7,fontFamily:'JetBrains Mono,monospace'},lbl):null);})),
+                  h('path',{d:'M'+x1+','+y1+' C'+(x1+cpx)+','+y1+' '+(x2-cpx)+','+y2+' '+x2+','+y2,
+                    fill:'none',stroke:s.color,
+                    strokeWidth:isDimEdge?0.8:CAUSAL_E?2:1.4,
+                    opacity:isDimEdge?0.15:CAUSAL_E?0.85:0.65,
+                    strokeDasharray:s.dash||null,
+                    markerEnd:CAUSAL_E?'url(#arrm-'+e.link_type+')':undefined}),
+                  // Edge label pill — always shown, dimmed when not in hover set
+                  lblTxt&&!isDimEdge?h(React.Fragment,{key:'lbl'},
+                    h('rect',{x:mx-lblTxt.length*2.9,y:my-7,
+                      width:lblTxt.length*5.8,height:13,rx:3,
+                      fill:'white',opacity:0.88,stroke:s.color,strokeWidth:0.5,strokeOpacity:0.4}),
+                    h('text',{x:mx,y:my+3,textAnchor:'middle',fontSize:7.5,fontWeight:700,
+                      fill:s.color,fontFamily:'JetBrains Mono,monospace'},lblTxt)):null);})),
             // Node cards
             ...linkedNodes.map(n=>{
               const pos=npos[n.agent_gid];if(!pos)return null;
               const dc=this.smDomainColor(n.domain_name);
-              const isHub=n.is_hub,isH=hov===n.agent_gid,isDim=hovPeers&&!hovPeers.has(n.agent_gid);
+              const meta=agentMeta[n.agent_gid]||{};
+              const isHub=n.is_hub,isH=hov===n.agent_gid;
+              const isDim=hovPeers&&!hovPeers.has(n.agent_gid);
+              const isActive=meta.is_active!==undefined?meta.is_active:n.is_active;
+              const hDot=isActive?'#22C55E':'#F97316';
+              const relVer=meta.otm_release?(meta.otm_release.split('-')[0]||meta.otm_release):'';
+              const dqtShort=(n.data_query_type_gid||'').replace('SKYMFG.','').replace('OTM.','');
+              const cx=n.complexity_score!=null?n.complexity_score:null;
+              const cxC=cx==null?C.faint:cx<=20?'#22C55E':cx<=50?'#F59E0B':'#EF4444';
               return h('div',{key:n.agent_gid,
                 onClick:()=>this.smOpenAgent(n.agent_gid),
                 onMouseEnter:()=>this.setState({skymfgMapHovered:n.agent_gid}),
                 onMouseLeave:()=>this.setState({skymfgMapHovered:null}),
-                style:{position:'absolute',left:pos.x,top:pos.y,width:NW,padding:'8px 10px',
-                  background:C.card,border:(isHub?2:1)+'px solid '+(isH?dc:C.border),
-                  borderRadius:7,cursor:'pointer',borderTop:'3px solid '+dc,
-                  boxShadow:isH?'0 3px 12px '+dc+'50':'0 1px 2px rgba(0,0,0,.04)',
-                  opacity:isDim?0.14:1,transition:'opacity 80ms,box-shadow 80ms',userSelect:'none'}},
-                h('div',{style:{fontSize:isHub?11.5:11,fontWeight:isHub?800:600,color:C.text,
-                  lineHeight:1.3,marginBottom:4,wordBreak:'break-word',minHeight:28}},n.agent_xid),
-                h('div',{style:{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}},
-                  h('span',{style:{fontSize:9,fontWeight:700,color:dc,background:dc+'18',borderRadius:3,
-                    padding:'1px 5px',maxWidth:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
-                    (n.domain_name||'').replace('SKYMFG/','').replace('SKYMFG','ROOT')),
-                  isHub?h('span',{style:{fontSize:9,fontWeight:800,color:C.gold,background:C.gold+'18',borderRadius:3,padding:'1px 5px'}},'HUB'):null,
-                  n.link_count?h('span',{style:{fontSize:9,color:C.faint,fontFamily:'JetBrains Mono,monospace'}},n.link_count+' lk'):null));
+                style:{position:'absolute',left:pos.x,top:pos.y,width:NW,
+                  padding:'0',
+                  background:'#fff',
+                  border:'1px solid '+(isH?dc:'#E2E8F0'),
+                  borderRadius:8,cursor:'pointer',
+                  boxShadow:isH
+                    ?'0 4px 16px '+dc+'55,0 0 0 2px '+dc+'33'
+                    :isDim?'none':'0 1px 4px rgba(0,0,0,.06)',
+                  opacity:isDim?0.32:1,
+                  transition:'opacity 120ms,box-shadow 80ms',
+                  userSelect:'none',overflow:'hidden'}},
+                // Top color bar
+                h('div',{style:{height:3,background:dc}}),
+                // Link count badge — top right corner
+                n.link_count?h('div',{style:{position:'absolute',top:5,right:6,
+                  width:17,height:17,borderRadius:'50%',
+                  background:'#F97316',display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:9,fontWeight:800,color:'#fff',lineHeight:1,zIndex:1}},n.link_count):null,
+                // Card body
+                h('div',{style:{padding:'7px 10px 8px'}},
+                  // Agent name
+                  h('div',{style:{fontSize:11,fontWeight:700,color:'#1E293B',
+                    lineHeight:1.25,marginBottom:5,
+                    paddingRight:n.link_count?16:0,
+                    overflow:'hidden',display:'-webkit-box',
+                    WebkitLineClamp:2,WebkitBoxOrient:'vertical'}},n.agent_xid),
+                  // DQT / event row
+                  dqtShort?h('div',{style:{fontSize:9,fontWeight:700,color:dc,
+                    fontFamily:'JetBrains Mono,monospace',marginBottom:3,
+                    overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},dqtShort):null,
+                  // Score + version + health dot
+                  h('div',{style:{display:'flex',alignItems:'center',gap:4,marginBottom:4}},
+                    cx!=null?h('span',{style:{fontSize:9,fontWeight:700,color:cxC,
+                      fontFamily:'JetBrains Mono,monospace'}},'Cx '+cx.toFixed(1)):null,
+                    relVer?h('span',{style:{fontSize:9,color:'#94A3B8',fontFamily:'JetBrains Mono,monospace'}},
+                      cx!=null?'· '+relVer:relVer):null,
+                    h('span',{style:{flex:1}}),
+                    h('span',{title:isActive?'Active':'Inactive',
+                      style:{width:7,height:7,borderRadius:'50%',background:hDot,flex:'none',
+                        boxShadow:'0 0 0 2px '+hDot+'30'}})),
+                  // Domain chip
+                  h('div',{style:{fontSize:8.5,fontWeight:700,color:dc,
+                    background:dc+'14',border:'1px solid '+dc+'28',borderRadius:3,
+                    padding:'1px 5px',display:'inline-block',
+                    maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
+                    (n.domain_name||'').replace('SKYMFG/','').replace('SKYMFG','ROOT'))));
             })))
         :h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:C.faint,fontSize:12}},
             'No connected agents for this selection'),
