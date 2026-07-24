@@ -1,79 +1,48 @@
 ---
 name: SkyMFG UI screens
-description: Step 3 UI mapping — four SkyMFG screens wired to real DB data, plus all post-migration API fixes
+description: SkyMFG tenant screens, API routes, seed pipeline, and column-rename fixes.
 ---
 
-## What was built (Step 3)
+## Screens (all working)
+- SkyMFG Overview (`?screen=skymfg`) — KPI cards, domain distribution bar chart, data-query-type breakdown
+- Agent Map (`?screen=skymfg-map`) — Domain → Data Query Type → Agent card hierarchy
+- Agent List (`?screen=skymfg-list`) — sortable/filterable table of all 150 agents
+- Integrations (`?screen=skymfg-integrations`) — external systems with wired-agent chips
 
-Four new screens in `Katalyst.dc.html` + four new API routes in `api.js`:
+## API routes (all in api.js)
+- `GET /api/skymfg/summary` — totals + domain_dist + data_query_type breakdown
+- `GET /api/skymfg/domains` — 6 domains with theme colors
+- `GET /api/skymfg/agents?domain=` — 150 agents, filterable by domain_name
+- `GET /api/skymfg/agent?gid=` — single agent with actions + events
+- `GET /api/skymfg/xref?gid=` — agents triggered by / triggering the given agent (uses RAISE INTERNAL EVENT pattern match on action_params)
+- `GET /api/skymfg/integrations` — external_systems with wired agent count
 
-| Screen | nav id | render method |
-|---|---|---|
-| SkyMFG Overview | `skymfg` | `renderSkymfgDashboard()` |
-| Agent Map | `skymfg-map` | `renderSkymfgMap()` |
-| Agent List | `skymfg-list` | `renderSkymfgList()` |
-| Agent Workbench | `skymfg-agent` | `renderSkymfgAgent()` |
+## Canonical seed source
+**File**: `attached_assets/catalyst_skymfg_seed_1784878938654.json`
+**Contents**: 150 agents · 6 domains · 1 636 actions · 171 events · 18 data query types · 7 external systems · 33 users · 12 contacts · 152 saved_conditions · 97 event_catalog · 98 action_catalog
 
-API routes (all new, inserted before `// ─── AUTO-SEED` block):
-- `GET /api/skymfg/summary` — KPI cards + domain_dist + dqt_breakdown
-- `GET /api/skymfg/domains` — 6 SkyMFG domains with theme_color
-- `GET /api/skymfg/agents?domain=` — all 150 agents (filtered by domain if param provided)
-- `GET /api/skymfg/agent?gid=` — single agent + events + actions (GID in query param, not path, because GIDs contain `/`)
+**One-time import script**: `node scripts/import_skymfg.js`
+- Wipes all SkyMFG domains + agents (cascading), then reloads from JSON
+- Handles both old fake domains (SKYMFG/ORDER etc.) and real domains (PUBLIC, SKYMFG, SKYMFG/DEMO, SKYMFG/LW, SKYMFG/RAIL, SKYMFG/TRAINING)
+- Uses chunked multi-row INSERT for speed (500/100/200 row chunks)
 
-## State added
-```
-skymfgDomain, skymfgAgentGid, skymfgAgentDetail, skymfgAgentLoading,
-skymfgListSearch, skymfgListDomains, skymfgListDQTs, skymfgListActiveOnly,
-skymfgListSort, skymfgListSortDir, skymfgMetaOpen
-```
-Class properties: `skymfgSummary=null; skymfgDomains=[]; skymfgAgents=[];`
+**Startup seed function**: `autoSeedSkymfgIfEmpty()` in api.js
+- Guard: `SELECT COUNT(*) FROM domains WHERE tenant_id='SKYMFG'`
+- On empty: reads SKYMFG_SEED_PATH (same JSON file) and inserts all tables row-by-row
+- Called last in the `.then()` chain in `app.listen`
 
-## Key design decisions
+## Column name map (agents → DB schema)
+| Seed field | DB column |
+|---|---|
+| `agent_gid` | `agent_gid` (PK) |
+| `agent_xid` | `agent_xid` |
+| `domain_name` | `domain_name` |
+| `data_query_type_gid` | `data_query_type_gid` |
+| `functional_categories` (array) | `functional_categories` (TEXT, JSON.stringify'd) |
+| domains have no `tenant_id` | supply `'SKYMFG'` on insert |
 
-- **Domain filter bar** (`renderSkymfgDomainBar()`) is shared across all four screens; sets `skymfgDomain` state; all screens call `this.smFilteredAgents()` for client-side domain filtering.
-- **Agent workbench** (`smOpenAgent(gid)`) sets screen + fetches agent on demand; workbench does NOT respond to domain filter (single-agent view).
-- **Action flow nesting**: ENDIF/ELSE/ELSEIF decrement indent before rendering; IF/FOR EACH/ELSE/ELSEIF increment after. This means the ELSE line shows at the parent's indent level.
-- **Params display**: only specific keys shown (KEY_SHOW list); sqlStatement gets `<code>` truncated to 130 chars.
+## Tables populated by seed
+`tenants`, `domains`, `data_query_types`, `external_systems`, `otm_users`, `notification_contacts`, `saved_conditions`, `event_catalog`, `action_catalog`, `agents`, `agent_actions`, `agent_events`
 
-## Post-migration API fixes (critical)
-
-The schema migration renamed columns in two tables. Every API endpoint touching these tables needed updating:
-
-| Old column | New column | Table |
-|---|---|---|
-| `id` | `agent_gid` | `agents` |
-| `name` | `agent_xid` | `agents` |
-| `domain` | `domain_name` | `agents` |
-| `type` | `data_query_type_gid` | `agents` |
-| `agent_id` | `agent_gid` | `agent_actions` |
-| `action_text` | `action_gid` | `agent_actions` |
-| `sort_order` | `action_sequence` | `agent_actions` |
-
-Tables NOT renamed (still use old names): `agent_conditions`, `agent_reads`, `agent_writes`, `agent_annotations` (all use `agent_id` FK to `agents.agent_gid`).
-
-Endpoints fixed: `/api/agents` GET, `/api/agents/:id` PUT, `/api/data` GET, `/api/v2/agent-query`, `/api/annotations` GET (JOIN used `a.id`), `refreshAgentActionStyle()`, auto-seed INSERT.
-
-**Why:** The migration (applied before Step 3) renamed columns but the old endpoint code was not updated at the same time. All existing Katalyst screens broke until these were fixed.
-
-## agent_actions query pattern
-
-Always filter by action_flow when querying for Katalyst demo agent actions (to exclude SkyMFG data from legacy screens):
-```sql
-WHERE action_flow IS NULL OR action_flow='NORMAL' ORDER BY agent_gid, action_sequence
-```
-SkyMFG actions always have `action_flow='NORMAL'` or `action_flow='ERROR'`. Legacy Katalyst demo actions have `action_flow='NORMAL'` after the refresh script runs.
-
-## Step 8 — Agent Cross-Reference (xref)
-
-**API**: `GET /api/skymfg/xref?gid=<agent_gid>` — returns `{triggers, triggered_by}`.
-Uses direct SQL JOIN (no JS parsing) to match raise actions against event listeners:
-- `RAISE INTERNAL EVENT` → matches `agent_events.event_gid` via `-internalEvent {EVENT_GID}` pattern
-- `RAISE EVENT` / `FOR EACH` → matches via `-customEvent DOMAIN.EVENT_GID` pattern
-
-**Why SQL JOIN not JS parse**: The JOIN approach was validated directly against the DB and produces correct deduplicated results without a second round-trip. JS parsing added fragility for no benefit.
-
-**State**: `skymfgAgentXref` loaded in parallel with `skymfgAgentDetail` inside `smOpenAgent()` via `Promise.all`.
-
-**Preflight counts (all SkyMFG-scoped)**:
-- 150 agents, 6 domains, 1,636 actions, 171 events
-- Most complex agent: SKYMFG/RAIL.TRE-RAIL-PROCESS-ALL-ELIGIBLE-EVENTS — 152 normal actions
+## Known: xref returns 0 for agents without OTM-format action_params
+The xref SQL JOIN matches `RAISE INTERNAL EVENT` / `RAISE EVENT` action_gid + specific `-internalEvent {…}` param syntax. Only agents with real OTM XML-style params get xref results. With the full 1 636-action dataset (which does include these), most agents in SKYMFG/TRAINING and SKYMFG/RAIL domain do return triggers.
