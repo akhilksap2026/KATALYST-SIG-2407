@@ -86,6 +86,32 @@ app.put('/api/agents/:id', async (req, res) => {
   finally { client.release(); }
 });
 
+// GET /api/agents/:id — single agent by GID (Bug 2 fix)
+app.get('/api/agents/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [agentRows, condRows, actRows, readRows, writeRows] = await Promise.all([
+      query('SELECT * FROM agents WHERE agent_gid=$1', [id]),
+      query('SELECT * FROM agent_conditions WHERE agent_id=$1 ORDER BY sort_order', [id]),
+      query('SELECT * FROM agent_actions WHERE agent_gid=$1 AND (action_flow IS NULL OR action_flow=\'NORMAL\') ORDER BY action_sequence', [id]),
+      query('SELECT * FROM agent_reads WHERE agent_id=$1 ORDER BY sort_order', [id]),
+      query('SELECT * FROM agent_writes WHERE agent_id=$1 ORDER BY sort_order', [id]),
+    ]);
+    if (!agentRows.length) return res.status(404).json({ error: 'Agent not found' });
+    const a = agentRows[0];
+    res.json({
+      id: a.agent_gid, name: a.agent_xid, domain: a.domain_name, type: a.data_query_type_gid,
+      version: a.version, owner: a.owner, trigger: a.trigger_name,
+      evt: a.evt, priority: a.priority, success: parseFloat(a.success_rate),
+      health: a.health, gx: a.gx, gy: a.gy,
+      conditions: condRows.map(r => r.condition_text),
+      actions: actRows.map(r => r.action_gid),
+      reads: readRows.map(r => r.field_name),
+      writes: writeRows.map(r => r.field_name),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── AGENT DRAFTS ─────────────────────────────────────────────────────────────
 
 app.get('/api/agents/:id/draft', async (req, res) => {
@@ -474,10 +500,18 @@ app.post('/api/v2/agent-query', async (req, res) => {
     const { filters, explanation, confidence } = translateQuery(question.trim(), vocab);
 
     // Build lookup maps for the executor
-    const agentReads = {}, agentWrites = {}, agentActions = {};
+    const agentReads = {}, agentWrites = {}, agentActions = {}, agentRaisedEvents = {};
     readRows.forEach(r  => (agentReads[r.agent_id]   = agentReads[r.agent_id]   || []).push(r.field_name));
     writeRows.forEach(r => (agentWrites[r.agent_id]  = agentWrites[r.agent_id]  || []).push(r.field_name));
-    actionRows.forEach(r=> (agentActions[r.agent_gid] = agentActions[r.agent_gid] || []).push(r.action_gid));
+    actionRows.forEach(r => {
+      (agentActions[r.agent_gid] = agentActions[r.agent_gid] || []).push(r.action_gid);
+      if (r.action_params) {
+        const m1 = r.action_params.match(/-internalEvent\s+\{([^}]+)\}/);
+        if (m1) (agentRaisedEvents[r.agent_gid] = agentRaisedEvents[r.agent_gid] || []).push(m1[1]);
+        const m2 = r.action_params.match(/-customEvent\s+(\S+)/);
+        if (m2) (agentRaisedEvents[r.agent_gid] = agentRaisedEvents[r.agent_gid] || []).push(m2[1]);
+      }
+    });
 
     const agents = agentRows.map(a => ({
       id: a.agent_gid, name: a.agent_xid, domain: a.domain_name, type: a.data_query_type_gid,
@@ -486,7 +520,7 @@ app.post('/api/v2/agent-query', async (req, res) => {
       health: a.health, gx: a.gx, gy: a.gy,
     }));
 
-    const { matches } = executeQuery(filters, { agents, agentReads, agentWrites, agentActions });
+    const { matches } = executeQuery(filters, { agents, agentReads, agentWrites, agentActions, agentRaisedEvents });
 
     res.json({
       question:    question.trim(),
@@ -635,7 +669,7 @@ app.get('/api/skymfg/summary', async (req, res) => {
              WHERE domain_name IN (SELECT domain_name FROM domains WHERE tenant_id='SKYMFG')`),
       query(`SELECT COUNT(*) AS n FROM agent_actions aa JOIN agents a ON aa.agent_gid=a.agent_gid
              WHERE a.domain_name IN (SELECT domain_name FROM domains WHERE tenant_id='SKYMFG') AND aa.action_flow='NORMAL'`),
-      query(`SELECT COUNT(DISTINCT aa.agent_gid) AS n FROM agent_actions aa JOIN agents a ON aa.agent_gid=a.agent_gid
+      query(`SELECT COUNT(*) AS n FROM agent_actions aa JOIN agents a ON aa.agent_gid=a.agent_gid
              WHERE a.domain_name IN (SELECT domain_name FROM domains WHERE tenant_id='SKYMFG') AND aa.action_flow='ERROR'`),
       query(`SELECT COUNT(*) AS n FROM domains WHERE tenant_id='SKYMFG'`),
       query(`SELECT COUNT(DISTINCT data_query_type_gid) AS n FROM agents
@@ -654,7 +688,8 @@ app.get('/api/skymfg/summary', async (req, res) => {
         agents:parseInt(totRow[0].agents), active_agents:parseInt(totRow[0].active_agents),
         avg_complexity:parseFloat(totRow[0].avg_complexity)||0,
         domains:parseInt(domCount[0].n), dqt_count:parseInt(dqtCount[0].n),
-        action_steps:parseInt(actionRow[0].n), error_flow_agents:parseInt(errorRow[0].n),
+        action_steps:parseInt(actionRow[0].n), error_steps:parseInt(errorRow[0].n),
+        total_steps:parseInt(actionRow[0].n)+parseInt(errorRow[0].n),
         top_release:relRow[0]?.otm_release||'—',
       },
       domain_dist:domDist.map(d=>({...d,agent_count:parseInt(d.agent_count)})),

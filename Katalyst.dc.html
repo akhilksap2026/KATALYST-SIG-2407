@@ -94,7 +94,7 @@ class Component extends DCLogic {
     annotations:{}, annotDraft:{}, annotAddOpen:{},
     skymfgDomain:null, skymfgAgentGid:null, skymfgAgentDetail:null, skymfgAgentXref:null, skymfgAgentLoading:false,
     skymfgListSearch:'', skymfgListDomains:[], skymfgListDQTs:[], skymfgListActiveOnly:false,
-    skymfgListSort:'agent_xid', skymfgListSortDir:'asc', skymfgMetaOpen:true };
+    skymfgListSort:'agent_xid', skymfgListSortDir:'asc', skymfgMetaOpen:true, agentPickerOpen:null, agentPickerQuery:'' };
   // default empty collections — prevent render crashes before _loadData resolves
   agents=[]; conflicts=[]; liveEventLog=[]; audit=[]; jobs=[];
   skymfgSummary=null; skymfgDomains=[]; skymfgAgents=[]; skymfgIntegrations=[];
@@ -727,6 +727,7 @@ class Component extends DCLogic {
       ]);
       // agents
       this.agents = agentsRes.map(a=>({...a, success:parseFloat(a.success), conditions:a.conditions||[], actions:a.actions||[], reads:a.reads||[], writes:a.writes||[]}));
+      this.nwlAgents = this.agents.filter(a=>!a.domain||!a.domain.startsWith('SKYMFG'));
       // workflow edges
       this.flowEdges = edgesRes.filter(e=>e.edge_type==='flow').map(e=>[e.from_agent,e.to_agent]);
       this.aiEdges   = edgesRes.filter(e=>e.edge_type==='ai').map(e=>[e.from_agent,e.to_agent]);
@@ -1469,16 +1470,39 @@ class Component extends DCLogic {
       h('div',{style:{fontFamily:'JetBrains Mono,monospace',fontSize:9}}, 'tenant NWL · OTM 26B'));
     return h(React.Fragment,{}, logo, navWrap, foot); }
 
+  renderAgentCombo(ctx,value,onSelect,agents,opts){
+    const C=this.C,h=React.createElement,dark=opts&&opts.dark,mw=(opts&&opts.minWidth)||240;
+    const isOpen=this.state.agentPickerOpen===ctx;
+    const q=isOpen?(this.state.agentPickerQuery||''):'';
+    const nd=q.toLowerCase().trim();
+    const list=nd?agents.filter(a=>(a.name||'').toLowerCase().includes(nd)||(a.id||'').toLowerCase().includes(nd)||(a.domain||'').toLowerCase().includes(nd)):agents;
+    const doms=[...new Set(list.map(a=>a.domain||''))];
+    const groups=doms.map(d=>({d,items:list.filter(a=>(a.domain||'')===d)})).filter(g=>g.items.length);
+    const cur=agents.find(a=>a.id===value)||agents[0];
+    const hDot=hv=>hv==='green'?'🟢':hv==='amber'?'🟡':hv==='red'?'🔴':'⚪';
+    const open=()=>this.setState({agentPickerOpen:ctx,agentPickerQuery:''});
+    const close=()=>this.setState({agentPickerOpen:null,agentPickerQuery:''});
+    const pick=id=>{onSelect(id);close();};
+    const bg=dark?'#162a6a':C.panel,fg=dark?'#fff':C.text,br=dark?'rgba(255,255,255,.28)':C.border;
+    const chv="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='"+(dark?'%23ffffff':'%239CA3A3')+"' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")";
+    const label=cur?(hDot(cur.health)+' '+(cur.name||cur.id)):'— select agent —';
+    const trigSty={cursor:'pointer',font:'inherit',fontSize:12,fontWeight:600,fontFamily:'JetBrains Mono,monospace',padding:'6px 26px 6px 10px',borderRadius:8,background:isOpen?(dark?'#1e3a8a':'#dce7fb'):bg,color:fg,border:'1px solid '+(isOpen?(dark?'rgba(255,255,255,.5)':C.teal):br),minWidth:mw,textAlign:'left',outline:'none',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',backgroundImage:chv,backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center',transition:'border-color 100ms,background 100ms'};
+    const trigger=h('button',{onClick:()=>isOpen?close():open(),style:trigSty},label);
+    if(!isOpen)return h('div',{style:{position:'relative',display:'inline-block'}},trigger);
+    const dc=d=>{if(!d)return C.teal;if(d.includes('RAIL'))return '#c084fc';if(d.includes('/LW'))return '#34d399';if(d.includes('DEMO'))return '#f97316';if(d.includes('TRAINING'))return '#60a5fa';if(d.includes('SKYMFG'))return '#a78bfa';if(d.includes('Shipment'))return '#2dd4bf';if(d.includes('Invoice'))return '#fbbf24';if(d.includes('Order'))return '#818cf8';return C.teal;};
+    const resultRows=list.length===0?h('div',{style:{padding:'16px',textAlign:'center',color:C.faint,fontSize:12,fontStyle:'italic'}},'No agents match'):groups.map((g,gi)=>h('div',{key:gi},h('div',{style:{padding:'5px 12px 3px',fontSize:9.5,fontWeight:700,color:C.faint,textTransform:'uppercase',letterSpacing:'.6px',background:C.panel2,borderBottom:'1px solid '+C.line,display:'flex',alignItems:'center',gap:5}},h('span',{style:{width:5,height:5,borderRadius:'50%',background:dc(g.d),flex:'none'}}),g.d||'NWL'),g.items.map(a=>h('div',{key:a.id,onClick:()=>pick(a.id),style:{display:'flex',alignItems:'center',gap:8,padding:'7px 12px',cursor:'pointer',background:a.id===value?dc(a.domain)+'18':'transparent',borderLeft:'2px solid '+(a.id===value?dc(a.domain):'transparent')},onMouseEnter:e=>{e.currentTarget.style.background=C.panel2;},onMouseLeave:e=>{e.currentTarget.style.background=a.id===value?dc(a.domain)+'18':'transparent';}},h('span',{style:{fontSize:11,flex:'none'}},hDot(a.health)),h('div',{style:{flex:1,minWidth:0}},h('div',{style:{fontSize:12,fontWeight:a.id===value?700:500,color:C.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},a.name||a.id),h('div',{style:{fontSize:10,color:C.faint,fontFamily:'JetBrains Mono,monospace',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},a.id))))));
+    const panel=h('div',{style:{position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:901,background:C.panel,border:'1px solid '+C.border,borderRadius:10,boxShadow:'0 8px 32px rgba(0,0,0,.18)',width:370,maxWidth:'90vw',overflow:'hidden'}},h('div',{style:{padding:'8px 10px',borderBottom:'1px solid '+C.line,background:C.panel2}},h('input',{autoFocus:true,placeholder:'Search agents…',value:q,onChange:e=>this.setState({agentPickerQuery:e.target.value}),onKeyDown:e=>{if(e.key==='Escape')close();if(e.key==='Enter'&&list.length>0)pick(list[0].id);},style:{width:'100%',font:'inherit',fontSize:12.5,padding:'6px 10px',borderRadius:7,background:C.bg,color:C.text,border:'1px solid '+C.border,outline:'none',boxSizing:'border-box'}}),h('div',{style:{marginTop:4,fontSize:10,color:C.faint}},list.length+(list.length===1?' agent':' agents')+(nd?' matching':''))),h('div',{style:{maxHeight:300,overflowY:'auto'}},resultRows));
+    return h('div',{style:{position:'relative',display:'inline-block'}},h('div',{onClick:close,style:{position:'fixed',inset:0,zIndex:900}}),trigger,panel); }
+
   renderTopbar(){ const C=this.C,h=React.createElement;
     const TB={text:'#FFFFFF',dim:'rgba(255,255,255,.82)',faint:'rgba(255,255,255,.52)',border:'rgba(255,255,255,.22)',bg:'rgba(0,0,0,.18)'};
-    const titles={overview:'Command Center',workflow:'Agent Dependency Graph',agents:'Promotion Diff',view:'Agent Inspector',import:'Agent Import',workbench:'Agent Editor',conflicts:'Event Ordering',trace:'Execution Replay',health:'OTM Process Monitor',env:'Domain Promotion',audit:'Audit Log',admin:'Platform Admin'};
+    const titles={overview:'Command Center',workflow:'Agent Dependency Graph',agents:'Promotion Diff',view:'Agent Inspector',import:'Agent Import',workbench:'Agent Editor',conflicts:'Event Ordering',trace:'Execution Replay',health:'OTM Process Monitor',env:'Domain Promotion',audit:'Audit Log',admin:'Platform Admin','skymfg':'SkyMFG Overview','skymfg-map':'SkyMFG Agent Map','skymfg-list':'SkyMFG Agent List','skymfg-agent':'SkyMFG Agent Detail','skymfg-integrations':'SkyMFG Integrations'};
     const showPicker=['agents','view','trace','workbench'].indexOf(this.state.screen)>=0;
     const pickerSty={cursor:'pointer',font:'inherit',fontSize:12,fontWeight:600,fontFamily:'JetBrains Mono,monospace',padding:'6px 24px 6px 10px',borderRadius:8,background:'#162a6a',color:'#fff',border:'1px solid rgba(255,255,255,.28)',appearance:'none',outline:'none',colorScheme:'dark',backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ffffff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center'};
     const picker= showPicker? h('div',{style:{display:'flex',alignItems:'center',gap:8,minWidth:0}},
       h('span',{style:{width:1,height:20,background:TB.border,flex:'none'}}),
       h('span',{style:{fontSize:11,color:TB.faint,fontWeight:600,whiteSpace:'nowrap'}},'Agent'),
-      h('select',{value:this.state.activeAgent,onChange:e=>this.chooseAgent(e.target.value),title:'Active agent — shared across Diff, Trace & Agent Editor',style:pickerSty},
-        this.agents.map(a=>h('option',{key:a.id,value:a.id,style:{background:'#162a6a',color:'#fff'}},(a.health==='green'?'🟢':a.health==='amber'?'🟡':a.health==='red'?'🔴':'⚪')+' '+a.id)))) : null;
+      this.renderAgentCombo('topbar',this.state.activeAgent,id=>this.chooseAgent(id),this.nwlAgents||[],{dark:true,minWidth:220})) : null;
     const crumb=this.state.navPrev
       ? h('div',{style:{display:'flex',alignItems:'center',gap:7}},
           h('button',{onClick:()=>this.setState(s=>({screen:s.navPrev,navPrev:null})),title:'Back to '+(titles[this.state.navPrev]||''),
@@ -1917,7 +1941,7 @@ class Component extends DCLogic {
         style:{height:26,border:'1px solid '+C.border,borderRadius:6,background:C.panel,cursor:'pointer',font:'inherit',fontSize:11,fontWeight:600,color:C.dim,padding:'0 10px'}},'Fit'));
 
     const expOpen=this.state.wfExportOpen;
-    const _visioFn=()=>{ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); const shapes=this.agents.map(a=>'    <Shape ID="'+esc(a.id)+'" Name="'+esc(a.name)+'" Type="'+esc(a.type)+'" X="'+a.gx+'" Y="'+a.gy+'" Trigger="'+esc(a.evt)+'"/>').join('\n'); const conns=this.flowEdges.map((e,i)=>'    <Connect ID="F'+i+'" FromShape="'+esc(e[0])+'" ToShape="'+esc(e[1])+'" Kind="rule"/>').concat(this.aiEdges.map((e,i)=>'    <Connect ID="A'+i+'" FromShape="'+esc(e[0])+'" ToShape="'+esc(e[1])+'" Kind="ai"/>')).join('\n'); const xml='<?xml version="1.0" encoding="UTF-8"?>\n<VisioDocument>\n  <Page Name="Katalyst Workflow">\n'+shapes+'\n'+conns+'\n  </Page>\n</VisioDocument>'; const ok=this.download('katalyst-workflow.vdx',xml,'application/xml'); this.toast(ok?'Exported katalyst-workflow.vdx':'Export failed'); };
+    const _visioFn=()=>{ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); const shapes=(this.nwlAgents||this.agents).map(a=>'    <Shape ID="'+esc(a.id)+'" Name="'+esc(a.name)+'" Type="'+esc(a.type)+'" X="'+a.gx+'" Y="'+a.gy+'" Trigger="'+esc(a.evt)+'"/>').join('\n'); const conns=this.flowEdges.map((e,i)=>'    <Connect ID="F'+i+'" FromShape="'+esc(e[0])+'" ToShape="'+esc(e[1])+'" Kind="rule"/>').concat(this.aiEdges.map((e,i)=>'    <Connect ID="A'+i+'" FromShape="'+esc(e[0])+'" ToShape="'+esc(e[1])+'" Kind="ai"/>')).join('\n'); const xml='<?xml version="1.0" encoding="UTF-8"?>\n<VisioDocument>\n  <Page Name="Katalyst Workflow">\n'+shapes+'\n'+conns+'\n  </Page>\n</VisioDocument>'; const ok=this.download('katalyst-workflow.vdx',xml,'application/xml'); this.toast(ok?'Exported katalyst-workflow.vdx':'Export failed'); };
     const expItems=[
       {label:'Draw.io',   desc:'diagrams.net / draw.io XML',  fn:()=>this._exportDrawio()},
       {label:'Visio (.vdx)',desc:'Microsoft Visio XML',        fn:_visioFn},
@@ -3349,8 +3373,7 @@ class Component extends DCLogic {
     const topRow=h('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:16}},
       h('div',{style:{display:'flex',alignItems:'center',gap:8}},
         h('span',{style:{fontSize:11.5,color:C.faint,fontWeight:600}},'Agent'),
-        h('select',{value:selId,onChange:e=>this.chooseAgent(e.target.value),style:Object.assign({},selSty,{minWidth:264})},
-          this.agents.map(a=>h('option',{key:a.id,value:a.id,style:{background:'#fff',color:'#423D38',fontFamily:'JetBrains Mono,monospace'}},(a.health==='green'?'🟢':a.health==='amber'?'🟡':a.health==='red'?'🔴':'⚪')+' '+a.name+' · '+a.id)))),
+        this.renderAgentCombo('diff',selId,id=>this.chooseAgent(id),this.nwlAgents||[],{minWidth:280})),
       h('div',{style:{display:'flex',gap:3,background:C.panel2,border:'1px solid '+C.border,borderRadius:9,padding:3}},
         axBtn('env','Environments'),axBtn('version','Versions'),axBtn('domain','Domains'),
         h('button',{onClick:()=>{ this.setState({cmpAxis:'timeline',tlSnapshots:null,tlIdx:0}); this._loadTimeline(selId); },style:{padding:'5px 14px',borderRadius:6,fontSize:12,fontWeight:axis==='timeline'?700:500,background:axis==='timeline'?C.navy:'transparent',color:axis==='timeline'?'#fff':C.dim,border:'1px solid '+(axis==='timeline'?C.navy:C.border),cursor:'pointer',font:'inherit',transition:'all 100ms'}},'Timeline')),
@@ -3636,7 +3659,8 @@ class Component extends DCLogic {
       this.toast('Regression suite finished — '+(results.length-fail)+' passed, '+fail+' failed'); }, 1500); }
 
   renderWorkbench(){ const C=this.C,h=React.createElement;
-    const ag=this.byId(this.state.activeAgent)||this.byId('AG-SHIP-RETENDER');
+    const _wbRaw=this.byId(this.state.activeAgent);
+    const ag=(_wbRaw&&!(_wbRaw.domain||'').startsWith('SKYMFG'))?_wbRaw:(this.byId('AG-SHIP-RETENDER')||(this.nwlAgents||[])[0]);
     const isRetender=ag.id==='AG-SHIP-RETENDER';
     const cfgText='agent: AG-SHIP-RETENDER@v2.1.0-draft\n'+
       'blueprint_of: AG-SHIP-RETENDER (v2.0.3, PROD)\n'+
@@ -4038,9 +4062,7 @@ class Component extends DCLogic {
     const topRow=h('div',{style:{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:16}},
       h('div',{style:{display:'flex',alignItems:'center',gap:8}},
         h('span',{style:{fontSize:11.5,color:C.faint,fontWeight:600}},'Agent'),
-        h('select',{value:selId,onChange:e=>this.chooseAgent(e.target.value,{screen:'trace',traceStep:null}),style:Object.assign({},selSty,{minWidth:264})},
-          this.agents.map(a=>{ const td=this.traceData[a.id];
-            return h('option',{key:a.id,value:a.id,style:{background:'#fff',color:'#423D38',fontFamily:'JetBrains Mono,monospace'}},(a.health==='green'?'🟢':a.health==='amber'?'🟡':a.health==='red'?'🔴':'⚪')+' '+a.name+' · '+a.id+(td?' · '+td.statusLabel:'')); }))),
+        this.renderAgentCombo('trace',selId,id=>this.chooseAgent(id,{screen:'trace',traceStep:null}),this.nwlAgents||[],{minWidth:280})),
       t?h('div',{style:{display:'flex',alignItems:'center',gap:8}},
         h('span',{style:{fontSize:11.5,color:C.faint,fontWeight:600}},'Run'),
         h('div',{style:{display:'flex',alignItems:'center',gap:7}},
@@ -4790,7 +4812,7 @@ class Component extends DCLogic {
 
       // ── Step 1: Select ──
       if(pStep===1){
-        const changedAgents=this.agents.filter(a=>{ const d=this.agentDiffs[a.id]; return d&&(d.summary.add||d.summary.del||d.summary.mod); });
+        const changedAgents=(this.nwlAgents||this.agents).filter(a=>{ const d=this.agentDiffs[a.id]; return d&&(d.summary.add||d.summary.del||d.summary.mod); });
         const toggle=id=>this.setState(s=>{ const arr=s.envPromoteSelected||[]; return {envPromoteSelected:arr.includes(id)?arr.filter(x=>x!==id):[...arr,id]}; });
         const srcRow=h('div',{style:{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',background:C.panel,border:'1px solid '+C.border,borderRadius:10,padding:'13px 18px',marginBottom:18}},
           h('span',{style:{fontSize:12,color:C.faint,fontWeight:600}},'From'),
@@ -4803,7 +4825,7 @@ class Component extends DCLogic {
           h('div',{style:{marginLeft:'auto',display:'flex',gap:8}},
             this.btn('Select all changed',{onClick:()=>this.setState({envPromoteSelected:changedAgents.map(a=>a.id)})}),
             sel.length?this.btn('Clear',{onClick:()=>this.setState({envPromoteSelected:[]})}):null));
-        const agentRows=this.agents.map(a=>{ const d=this.agentDiffs[a.id];
+        const agentRows=(this.nwlAgents||this.agents).map(a=>{ const d=this.agentDiffs[a.id];
           const hasCh=d&&(d.summary.add||d.summary.del||d.summary.mod);
           const chgN=d&&hasCh?(d.summary.add||0)+(d.summary.del||0)+(d.summary.mod||0):0;
           const isSel=sel.includes(a.id);
@@ -5862,6 +5884,7 @@ class Component extends DCLogic {
   // ─── SKYMFG HELPERS ──────────────────────────────────────────────────────────
 
   smOpenAgent(gid){
+    if(!gid) return;
     this.setState({skymfgAgentGid:gid,skymfgAgentDetail:null,skymfgAgentXref:null,skymfgAgentLoading:true,screen:'skymfg-agent'});
     Promise.all([
       fetch('/api/skymfg/agent?gid='+encodeURIComponent(gid)).then(r=>r.json()),
@@ -6072,8 +6095,8 @@ class Component extends DCLogic {
       {label:'Active Agents',          value:T.active_agents,                   color:C.green,  sub:'is_active = TRUE'},
       {label:'Domains',                value:T.domains,                         color:C.purple, sub:'SKYMFG sub-domains'},
       {label:'Data Query Types',       value:T.dqt_count,                       color:C.navy,   sub:'distinct object types'},
-      {label:'Normal Action Steps',    value:(T.action_steps||0).toLocaleString(), color:C.teal, sub:'across all agents'},
-      {label:'Agents w/ Error Handler',value:T.error_flow_agents,               color:C.red,    sub:'have ERROR flow steps'},
+      {label:'NORMAL Action Steps',    value:(T.action_steps||0).toLocaleString(), color:C.teal, sub:(T.total_steps?((T.total_steps).toLocaleString()+' total incl. ERROR flow'):'across all agents')},
+      {label:'ERROR Flow Steps',       value:(T.error_steps||0).toLocaleString(),  color:C.red,  sub:'across all agents'},
       {label:'Avg Complexity Score',   value:T.avg_complexity,                  color:cxC,      sub:'lower is simpler'},
       {label:'OTM Release',            value:(T.top_release||'—').split('-')[0], color:C.dim,   sub:T.top_release||'—'},
     ];

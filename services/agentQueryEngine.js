@@ -121,6 +121,7 @@ function bestMatch(queryTokens, vocab, threshold = 0.35) {
 
 // ─── Intent patterns ──────────────────────────────────────────────────────────
 
+const RAISES_RE  = /\b(raise[s]?|emit[s]?|broadcast[s]?|invoke[s]?|dispatch[e]?[s]?|triggers?\s+downstream|triggers?\s+another|fires?\s+downstream)\b/i;
 const WRITE_RE   = /\b(write[s]?|output[s]?|set[s]?|update[s]?|emit[s]?|produce[s]?|creat[e]?[s]?|generat[e]?[s]?|output[s]?)\b/i;
 const READ_RE    = /\b(read[s]?|consume[s]?|use[s]?|input[s]?|depend[s]?\s+on|require[s]?|need[s]?|access[e]?[s]?|look[s]?\s+at|check[s]?)\b/i;
 const EVENT_RE   = /\b(fire[s]?\s+on|trigger[s]?(?:\s+on)?|listen[s]?(?:\s+to)?|respond[s]?\s+to|on\s+event|handle[s]?|react[s]?\s+to|when\s+|subscrib[e]?[s]?)/i;
@@ -146,12 +147,34 @@ function splitSegments(question) {
 // ─── Filter extraction ────────────────────────────────────────────────────────
 
 function extractFilters(question, vocab) {
-  const { fields, readFields, writeFields, events, domains, types, owners } = vocab;
+  const { fields, readFields, writeFields, events, domains, types, owners,
+          raisedEvents = [], actionTypes = [] } = vocab;
   const filters = [];
   const segments = splitSegments(question);
 
   for (const seg of segments) {
     const toks = tokenize(seg);
+
+    // ── Raises event (downstream invocation) ──────────────────────────────
+    if (RAISES_RE.test(seg) && !WRITE_RE.test(seg)) {
+      const evtMatch = bestMatch(toks, raisedEvents, 0.28);
+      if (evtMatch) {
+        filters.push({ type: 'raises_event', value: evtMatch.value, confidence: evtMatch.score,
+          matchedAs: evtMatch.matchedAs, label: 'raises event "' + evtMatch.value + '"',
+          explanation: 'Agents that raise/invoke event "' + evtMatch.value + '" downstream',
+          icon: '⛓', color: 'teal' });
+        continue;
+      }
+      // Match on action type (e.g. "raises internal event", "invokes via RAISE EVENT")
+      const atMatch = bestMatch(toks, actionTypes, 0.28);
+      if (atMatch) {
+        filters.push({ type: 'action_type', value: atMatch.value, confidence: atMatch.score,
+          matchedAs: atMatch.matchedAs, label: 'uses action ' + atMatch.value,
+          explanation: 'Agents that use the "' + atMatch.value + '" action step',
+          icon: '⚙', color: 'gold' });
+        continue;
+      }
+    }
 
     // ── Email / notification ───────────────────────────────────────────────
     if (EMAIL_RE.test(seg)) {
@@ -303,10 +326,11 @@ function extractFilters(question, vocab) {
 
 // ─── Filter executor ──────────────────────────────────────────────────────────
 
-function testFilter(filter, agent, agentReads, agentWrites, agentActions) {
+function testFilter(filter, agent, agentReads, agentWrites, agentActions, agentRaisedEvents) {
   const reads   = (agentReads[agent.id]   || []).map(f => f.toLowerCase());
   const writes  = (agentWrites[agent.id]  || []).map(f => f.toLowerCase());
   const actions = (agentActions[agent.id] || []).join(' ').toLowerCase();
+  const raised  = agentRaisedEvents ? (agentRaisedEvents[agent.id] || []) : [];
   const fv      = (v) => (v || '').toLowerCase();
 
   switch (filter.type) {
@@ -327,6 +351,10 @@ function testFilter(filter, agent, agentReads, agentWrites, agentActions) {
       return (agent.health || '').toLowerCase() === filter.value;
     case 'owner':
       return matchScore(tokenize(filter.value), agent.owner) >= 0.40;
+    case 'raises_event':
+      return raised.some(ev => matchScore(tokenize(filter.value), ev) >= 0.45);
+    case 'action_type':
+      return actions.includes(fv(filter.value));
     case 'action_contains':
       // value may be a |-separated list of synonyms (e.g. "email|notif|alert")
       return fv(filter.value).split('|').some(term => term && actions.includes(term));
@@ -345,9 +373,10 @@ function testFilter(filter, agent, agentReads, agentWrites, agentActions) {
   }
 }
 
-function getMatchHighlights(filters, agent, agentReads, agentWrites) {
+function getMatchHighlights(filters, agent, agentReads, agentWrites, agentRaisedEvents) {
   const reads   = agentReads[agent.id]  || [];
   const writes  = agentWrites[agent.id] || [];
+  const raised  = agentRaisedEvents ? (agentRaisedEvents[agent.id] || []) : [];
   const readMatched  = new Set();
   const writeMatched = new Set();
   const reasons = [];
@@ -372,6 +401,11 @@ function getMatchHighlights(filters, agent, agentReads, agentWrites) {
       reasons.push('type: ' + agent.type);
     } else if (f.type === 'health') {
       reasons.push('health: ' + agent.health);
+    } else if (f.type === 'raises_event') {
+      raised.filter(ev => matchScore(tokenize(f.value), ev) >= 0.45)
+            .forEach(ev => reasons.push('raises event: ' + ev));
+    } else if (f.type === 'action_type') {
+      reasons.push('uses action: ' + f.value);
     } else if (f.type === 'action_contains') {
       // f.value may be a |-separated synonym list — render it human-readably.
       const terms = String(f.value).split('|').filter(Boolean);
@@ -419,17 +453,17 @@ function translate(question, vocab) {
  * data = { agents, agentReads, agentWrites, agentActions }
  */
 function execute(filters, data) {
-  const { agents, agentReads, agentWrites, agentActions } = data;
+  const { agents, agentReads, agentWrites, agentActions, agentRaisedEvents = {} } = data;
 
   const matches = [];
   for (const agent of agents) {
     // All filters must match (AND logic)
     const passes = filters.length === 0 ||
-      filters.every(f => testFilter(f, agent, agentReads, agentWrites, agentActions));
+      filters.every(f => testFilter(f, agent, agentReads, agentWrites, agentActions, agentRaisedEvents));
     if (!passes) continue;
 
     const { readMatched, writeMatched, reasons } =
-      getMatchHighlights(filters, agent, agentReads, agentWrites);
+      getMatchHighlights(filters, agent, agentReads, agentWrites, agentRaisedEvents);
     matches.push({ agent, readMatched, writeMatched, reasons });
   }
 
@@ -446,14 +480,28 @@ function execute(filters, data) {
  * buildVocab(agents, reads, writes, actions) → vocab object used by translate()
  */
 function buildVocab(agents, reads, writes, actions) {
+  // Extract raised event names and action types from action rows for SkyMFG coverage
+  const raisedEventsSet = new Set();
+  const actionTypesSet  = new Set();
+  for (const r of (actions || [])) {
+    if (r.action_gid) actionTypesSet.add(r.action_gid);
+    if (r.action_params) {
+      const m1 = r.action_params.match(/-internalEvent\s+\{([^}]+)\}/);
+      if (m1) raisedEventsSet.add(m1[1]);
+      const m2 = r.action_params.match(/-customEvent\s+(\S+)/);
+      if (m2) raisedEventsSet.add(m2[1]);
+    }
+  }
   return {
-    fields:      [...new Set([...reads, ...writes].map(r => r.field_name))],
-    readFields:  new Set(reads.map(r => r.field_name)),
-    writeFields: new Set(writes.map(r => r.field_name)),
-    events:      [...new Set(agents.map(a => a.evt).filter(Boolean))],
-    domains:     [...new Set(agents.map(a => a.domain).filter(Boolean))],
-    types:       [...new Set(agents.map(a => a.type).filter(Boolean))],
-    owners:      [...new Set(agents.map(a => a.owner).filter(Boolean))],
+    fields:        [...new Set([...reads, ...writes].map(r => r.field_name))],
+    readFields:    new Set(reads.map(r => r.field_name)),
+    writeFields:   new Set(writes.map(r => r.field_name)),
+    events:        [...new Set(agents.map(a => a.evt).filter(Boolean))],
+    domains:       [...new Set(agents.map(a => a.domain).filter(Boolean))],
+    types:         [...new Set(agents.map(a => a.type).filter(Boolean))],
+    owners:        [...new Set(agents.map(a => a.owner).filter(Boolean))],
+    raisedEvents:  [...raisedEventsSet],
+    actionTypes:   [...actionTypesSet],
   };
 }
 
