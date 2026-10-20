@@ -19,7 +19,7 @@ services:
     environment:
       POSTGRES_DB:       katalyst
       POSTGRES_USER:     katalyst
-      POSTGRES_PASSWORD: katalyst_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-katalyst_secret}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -43,7 +43,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://katalyst:katalyst_secret@postgres:5432/katalyst
+      DATABASE_URL: postgresql://katalyst:${POSTGRES_PASSWORD:-katalyst_secret}@postgres:5432/katalyst
       NODE_ENV:     production
       PORT:         5000
       # PGWAIT_SECONDS: 60   # override Postgres wait timeout (default 60s)

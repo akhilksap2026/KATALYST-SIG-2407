@@ -1,0 +1,18 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # package-lock.json points at a Replit-internal registry, so install from npmjs without using it
+      - run: npm install --no-package-lock --no-save --registry=https://registry.npmjs.org/
+      - run: node --check api.js
+      - run: node tests/promotionPreflight.test.js
+      - run: node tests/agentQueryEngine.test.js
